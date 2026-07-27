@@ -66,7 +66,7 @@ Route::prefix('v1')->group(function () {
 
     // ── Routes protégées ─────────────────────────────────────────────────────
     // `tenant` résout le tenant courant depuis l'utilisateur authentifié (jamais le client).
-    Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
+    Route::middleware(['auth:sanctum', 'tenant', 'tenant.context'])->group(function () {
 
         // Auth — tous rôles
         Route::get('/auth/me',      [AuthController::class, 'me']);

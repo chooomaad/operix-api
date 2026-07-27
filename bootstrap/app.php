@@ -20,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'tenant.scope' => \App\Http\Middleware\TenantScope::class,   // vestige (no-op) conservé
             'tenant'       => \App\Http\Middleware\ResolveTenant::class,
+            'tenant.context' => \App\Http\Middleware\EnsureTenantContext::class,
             'role'         => \App\Http\Middleware\RequireRole::class,
             'superadmin'   => \App\Http\Middleware\SuperAdmin::class,
         ]);

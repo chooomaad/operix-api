@@ -53,4 +53,14 @@ class Tenant extends Model
     {
         return $this->status === 'suspended';
     }
+
+    public function allowsApplicationAccess(): bool
+    {
+        if ($this->status === 'active') {
+            return true;
+        }
+
+        return $this->status === 'trial'
+            && ($this->demo_expires_at === null || $this->demo_expires_at->isFuture());
+    }
 }

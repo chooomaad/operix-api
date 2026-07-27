@@ -25,6 +25,10 @@ class AuthController extends Controller
             return response()->json(['message' => 'Aucun compte actif trouvé pour cet email.'], 404);
         }
 
+        if ($failure = $this->tenantAuthFailure($user)) {
+            return $failure;
+        }
+
         OtpToken::where('email', $email)->where('used', false)->delete();
 
         $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
@@ -80,6 +84,10 @@ class AuthController extends Controller
             return response()->json(['message' => 'Compte introuvable.'], 404);
         }
 
+        if ($failure = $this->tenantAuthFailure($user)) {
+            return $failure;
+        }
+
         $user->tokens()->delete();
         $token = $user->createToken('operix-api')->plainTextToken;
         $user->update(['last_login_at' => now()]);
@@ -106,6 +114,10 @@ class AuthController extends Controller
 
         if (!$user->is_active) {
             return response()->json(['message' => 'Votre compte est en attente de validation par l\'administrateur.'], 403);
+        }
+
+        if ($failure = $this->tenantAuthFailure($user)) {
+            return $failure;
         }
 
         $user->tokens()->delete();
@@ -168,6 +180,10 @@ class AuthController extends Controller
             return response()->json(['message' => 'Si cet email existe, un code vous sera envoyé.']);
         }
 
+        if ($failure = $this->tenantAuthFailure($user)) {
+            return $failure;
+        }
+
         OtpToken::where('email', $email)->where('used', false)->delete();
         $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
@@ -218,6 +234,10 @@ class AuthController extends Controller
             return response()->json(['message' => 'Compte introuvable.'], 404);
         }
 
+        if ($failure = $this->tenantAuthFailure($user)) {
+            return $failure;
+        }
+
         $user->update(['password' => Hash::make($request->new_pin)]);
         $user->tokens()->delete();
 
@@ -251,5 +271,30 @@ class AuthController extends Controller
             'country'       => $org?->country         ?? 'MR',
             'timezone'      => $org?->timezone        ?? 'Africa/Nouakchott',
         ];
+    }
+
+    private function tenantAuthFailure(User $user): ?JsonResponse
+    {
+        if ($user->isSuperAdmin()) {
+            return null;
+        }
+
+        $tenant = $user->tenant;
+
+        if (! $tenant) {
+            return response()->json(['message' => 'Votre compte n\'est rattache a aucune entreprise.'], 403);
+        }
+
+        if ($tenant->isSuspended()) {
+            return response()->json([
+                'message' => 'Votre compte est suspendu. Contactez support@operix-app.com',
+            ], 403);
+        }
+
+        if (! $tenant->allowsApplicationAccess()) {
+            return response()->json(['message' => 'Votre acces a cette entreprise a expire.'], 403);
+        }
+
+        return null;
     }
 }
