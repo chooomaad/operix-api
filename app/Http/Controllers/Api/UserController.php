@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -13,7 +14,7 @@ class UserController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $users = User::query()
+        $users = $this->tenantUserQuery($request)
             ->when($request->filled('search'), fn ($q) =>
                 $q->where(fn ($s) =>
                     $s->where('name', 'ilike', "%{$request->search}%")
@@ -43,7 +44,7 @@ class UserController extends Controller
         $validated = $request->validate([
             'name'      => 'required|string|max:255',
             'email'     => ['required', 'email', 'unique:users,email'],
-            'role'      => ['required', Rule::in(['admin', 'agent', 'super_admin'])],
+            'role'      => ['required', Rule::in(['admin', 'agent'])],
             'matricule' => ['nullable', 'string', 'unique:users,matricule'],
             'phone'     => 'nullable|string|max:20',
             'password'  => 'required|string|min:4|max:50',
@@ -51,6 +52,7 @@ class UserController extends Controller
         ]);
 
         $user = User::create([
+            'tenant_id' => $request->user()->tenant_id,
             'name'      => $validated['name'],
             'email'     => $validated['email'],
             'role'      => $validated['role'],
@@ -63,14 +65,14 @@ class UserController extends Controller
         return response()->json($this->formatUser($user), 201);
     }
 
-    public function show(int $id): JsonResponse
+    public function show(Request $request, int $id): JsonResponse
     {
-        return response()->json($this->formatUser(User::findOrFail($id)));
+        return response()->json($this->formatUser($this->tenantUserQuery($request)->findOrFail($id)));
     }
 
     public function update(Request $request, int $id): JsonResponse
     {
-        $user = User::findOrFail($id);
+        $user = $this->tenantUserQuery($request)->findOrFail($id);
 
         if ($user->id === $request->user()->id && $request->filled('role') && $request->role !== $user->role) {
             return response()->json(['message' => 'Vous ne pouvez pas modifier votre propre rôle.'], 422);
@@ -79,7 +81,7 @@ class UserController extends Controller
         $validated = $request->validate([
             'name'      => 'sometimes|string|max:255',
             'email'     => ['sometimes', 'email', Rule::unique('users')->ignore($id)],
-            'role'      => ['sometimes', Rule::in(['admin', 'agent', 'super_admin'])],
+            'role'      => ['sometimes', Rule::in(['admin', 'agent'])],
             'matricule' => ['nullable', 'string', Rule::unique('users')->ignore($id)],
             'phone'     => 'nullable|string|max:20',
             'password'  => 'sometimes|nullable|string|min:4|max:50',
@@ -99,7 +101,7 @@ class UserController extends Controller
 
     public function destroy(Request $request, int $id): JsonResponse
     {
-        $user = User::findOrFail($id);
+        $user = $this->tenantUserQuery($request)->findOrFail($id);
 
         if ($user->id === $request->user()->id) {
             return response()->json(['message' => 'Vous ne pouvez pas supprimer votre propre compte.'], 422);
@@ -124,5 +126,10 @@ class UserController extends Controller
             'is_active'  => $u->is_active,
             'created_at' => $u->created_at?->toDateString(),
         ];
+    }
+
+    private function tenantUserQuery(Request $request): Builder
+    {
+        return User::query()->where('tenant_id', $request->user()->tenant_id);
     }
 }
