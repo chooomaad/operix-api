@@ -7,13 +7,13 @@ use App\Http\Requests\Environment\StoreEnvironmentRequest;
 use App\Http\Requests\Environment\UpdateEnvironmentRequest;
 use App\Http\Resources\EnvironmentResource;
 use App\Models\EnvironmentReport;
-use App\Traits\HasTenantScope;
+use App\Traits\HandlesApiResources;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class EnvironmentController extends Controller
 {
-    use HasTenantScope;
+    use HandlesApiResources;
 
     public function index(Request $request): JsonResponse
     {

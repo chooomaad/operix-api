@@ -7,13 +7,13 @@ use App\Http\Requests\NearMiss\StoreNearMissRequest;
 use App\Http\Requests\NearMiss\UpdateNearMissRequest;
 use App\Http\Resources\NearMissResource;
 use App\Models\SafetyNearMiss;
-use App\Traits\HasTenantScope;
+use App\Traits\HandlesApiResources;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class NearMissController extends Controller
 {
-    use HasTenantScope;
+    use HandlesApiResources;
 
     public function index(Request $request): JsonResponse
     {

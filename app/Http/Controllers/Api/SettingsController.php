@@ -4,14 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Organisation;
-use App\Traits\HasTenantScope;
+use App\Traits\HandlesApiResources;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class SettingsController extends Controller
 {
-    use HasTenantScope;
+    use HandlesApiResources;
 
     public function index(): JsonResponse
     {

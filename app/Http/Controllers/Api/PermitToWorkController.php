@@ -4,13 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\PermitToWork;
-use App\Traits\HasTenantScope;
+use App\Traits\HandlesApiResources;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class PermitToWorkController extends Controller
 {
-    use HasTenantScope;
+    use HandlesApiResources;
 
     public function index(Request $request): JsonResponse
     {

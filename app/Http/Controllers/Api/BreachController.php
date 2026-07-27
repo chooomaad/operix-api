@@ -7,13 +7,13 @@ use App\Http\Requests\Breach\StoreBreachRequest;
 use App\Http\Requests\Breach\UpdateBreachRequest;
 use App\Http\Resources\BreachResource;
 use App\Models\Breach;
-use App\Traits\HasTenantScope;
+use App\Traits\HandlesApiResources;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class BreachController extends Controller
 {
-    use HasTenantScope;
+    use HandlesApiResources;
 
     public function index(Request $request): JsonResponse
     {

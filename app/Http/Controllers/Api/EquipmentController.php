@@ -7,14 +7,14 @@ use App\Http\Requests\Equipment\StoreEquipmentRequest;
 use App\Http\Requests\Equipment\UpdateEquipmentRequest;
 use App\Http\Resources\EquipmentResource;
 use App\Models\Equipment;
-use App\Traits\HasTenantScope;
+use App\Traits\HandlesApiResources;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class EquipmentController extends Controller
 {
-    use HasTenantScope;
+    use HandlesApiResources;
 
     public function index(Request $request): JsonResponse
     {

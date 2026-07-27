@@ -7,10 +7,17 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
 /**
- * Utilitaires partagés par tous les contrôleurs HSSE.
- * Pagination, génération de références et journal d'audit.
+ * Helpers partagés par les contrôleurs HSSE : pagination, génération de références
+ * et journal d'audit.
+ *
+ * IMPORTANT : ce trait ne réalise AUCUN scoping tenant. L'isolation multi-tenant est
+ * assurée par le global scope App\Models\Scopes\TenantScope (via le trait
+ * App\Models\Concerns\BelongsToTenant appliqué aux modèles). generateReference() compte
+ * via le modèle Eloquent : le comptage est donc déjà scindé PAR TENANT grâce au global scope.
+ *
+ * (Anciennement nommé HasTenantScope — nom trompeur, renommé pour lever l'ambiguïté.)
  */
-trait HasTenantScope
+trait HandlesApiResources
 {
     protected function paginateQuery(Builder $query, Request $request, int $default = 25): array
     {

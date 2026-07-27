@@ -14,14 +14,14 @@ use App\Models\PermitToWork;
 use App\Models\SafetyIncident;
 use App\Models\SafetyNearMiss;
 use App\Models\Visitor;
-use App\Traits\HasTenantScope;
+use App\Traits\HandlesApiResources;
 use Illuminate\Http\Request;
 use Rap2hpoutre\FastExcel\FastExcel;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ExportController extends Controller
 {
-    use HasTenantScope;
+    use HandlesApiResources;
 
     public function employees(Request $request): StreamedResponse
     {

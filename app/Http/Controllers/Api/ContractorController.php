@@ -7,13 +7,13 @@ use App\Http\Requests\Contractor\StoreContractorRequest;
 use App\Http\Requests\Contractor\UpdateContractorRequest;
 use App\Http\Resources\ContractorResource;
 use App\Models\Contractor;
-use App\Traits\HasTenantScope;
+use App\Traits\HandlesApiResources;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ContractorController extends Controller
 {
-    use HasTenantScope;
+    use HandlesApiResources;
 
     public function index(Request $request): JsonResponse
     {

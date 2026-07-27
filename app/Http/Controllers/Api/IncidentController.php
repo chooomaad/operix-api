@@ -7,13 +7,13 @@ use App\Http\Requests\Incident\StoreIncidentRequest;
 use App\Http\Requests\Incident\UpdateIncidentRequest;
 use App\Http\Resources\IncidentResource;
 use App\Models\SafetyIncident;
-use App\Traits\HasTenantScope;
+use App\Traits\HandlesApiResources;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class IncidentController extends Controller
 {
-    use HasTenantScope;
+    use HandlesApiResources;
 
     public function index(Request $request): JsonResponse
     {

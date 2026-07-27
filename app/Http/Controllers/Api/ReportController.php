@@ -16,7 +16,7 @@ use App\Models\PermitToWork;
 use App\Models\SafetyIncident;
 use App\Models\SafetyNearMiss;
 use App\Models\Visitor;
-use App\Traits\HasTenantScope;
+use App\Traits\HandlesApiResources;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -24,7 +24,7 @@ use Illuminate\Http\Response;
 
 class ReportController extends Controller
 {
-    use HasTenantScope;
+    use HandlesApiResources;
 
     private function orgBranding(): array
     {

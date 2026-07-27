@@ -7,13 +7,13 @@ use App\Http\Requests\GembaWalk\StoreGembaWalkRequest;
 use App\Http\Requests\GembaWalk\UpdateGembaWalkRequest;
 use App\Http\Resources\GembaWalkResource;
 use App\Models\GembaWalk;
-use App\Traits\HasTenantScope;
+use App\Traits\HandlesApiResources;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class GembaWalkController extends Controller
 {
-    use HasTenantScope;
+    use HandlesApiResources;
 
     public function index(Request $request): JsonResponse
     {
