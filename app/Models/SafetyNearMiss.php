@@ -1,0 +1,31 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class SafetyNearMiss extends Model
+{
+    use SoftDeletes;
+
+    protected $table = 'safety_near_miss';
+
+    protected $fillable = [
+        'reference', 'date', 'time', 'location',
+        'severity', 'description', 'potential_consequence',
+        'corrective_action', 'corrective_action_due',
+        'status', 'reported_by', 'employees', 'image',
+    ];
+
+    protected $casts = [
+        'date'                  => 'date',
+        'corrective_action_due' => 'date',
+        'employees'             => 'array',
+    ];
+
+    public function reporter()
+    {
+        return $this->belongsTo(User::class, 'reported_by');
+    }
+}

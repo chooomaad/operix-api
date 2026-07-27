@@ -1,0 +1,119 @@
+@import 'tailwindcss';
+
+/* ── Dark mode class-based (Tailwind v4) ───────────────────────────────────── */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+
+  /* Brand blue */
+  --color-brand-50:  #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-200: #bfdbfe;
+  --color-brand-400: #60a5fa;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+  --color-brand-800: #1e40af;
+  --color-brand-900: #1e3a8a;
+
+  /* Sidebar navy (style TCN) */
+  --color-sidebar-900: #0a1929;
+  --color-sidebar-800: #0d2137;
+  --color-sidebar-750: #112843;
+  --color-sidebar-700: #162f4d;
+  --color-sidebar-600: #1e3d5c;
+  --color-sidebar-400: #5b8dab;
+  --color-sidebar-300: #8ab2c8;
+  --color-sidebar-200: #b8d2e3;
+
+  /* Surface (dark mode) */
+  --color-surface-950: #030712;
+  --color-surface-900: #0f172a;
+  --color-surface-800: #1e293b;
+  --color-surface-750: #263347;
+  --color-surface-700: #334155;
+  --color-surface-600: #475569;
+  --color-surface-500: #64748b;
+  --color-surface-400: #94a3b8;
+  --color-surface-300: #cbd5e1;
+  --color-surface-200: #e2e8f0;
+  --color-surface-100: #f1f5f9;
+  --color-surface-50:  #f8fafc;
+}
+
+/* ── Global resets ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html.dark { color-scheme: dark; }
+
+/* ── Scrollbar ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+.dark ::-webkit-scrollbar-thumb { background: #334155; }
+
+/* ── Component layer ───────────────────────────────────────────────────────── */
+@layer components {
+
+  /* ── Input field ── */
+  .field {
+    @apply w-full px-3 py-2 rounded-lg border text-sm transition
+           focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent
+           placeholder-gray-400 dark:placeholder-surface-500;
+    background-color: white;
+    border-color: #e2e8f0;
+    color: #0f172a;
+  }
+  .dark .field {
+    background-color: #1e293b;
+    border-color: #334155;
+    color: #f1f5f9;
+  }
+
+  /* ── Buttons ── */
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition
+           bg-brand-600 hover:bg-brand-700 text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition disabled:opacity-50;
+    border-color: #e2e8f0;
+    color: #374151;
+    background: white;
+  }
+  .dark .btn-secondary {
+    border-color: #334155;
+    color: #e2e8f0;
+    background: #1e293b;
+  }
+  .btn-secondary:hover { background: #f8fafc; }
+  .dark .btn-secondary:hover { background: #263347; }
+
+  /* ── Card ── */
+  .card {
+    @apply rounded-2xl border transition-shadow;
+    background: white;
+    border-color: #e8edf3;
+    box-shadow: 0 1px 4px 0 rgba(15,23,42,.06);
+  }
+  .dark .card {
+    background: #1e293b;
+    border-color: #2d3f55;
+    box-shadow: 0 1px 6px 0 rgba(0,0,0,.3);
+  }
+  .card:hover { box-shadow: 0 4px 16px 0 rgba(15,23,42,.1); }
+  .dark .card:hover { box-shadow: 0 4px 16px 0 rgba(0,0,0,.4); }
+
+  /* ── Table ── */
+  .table-row-hover {
+    @apply transition-colors;
+  }
+  .table-row-hover:hover { background: #f8fafc; }
+  .dark .table-row-hover:hover { background: rgba(255,255,255,.03); }
+}
