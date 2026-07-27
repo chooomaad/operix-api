@@ -3,11 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 
 class AppNotification extends Model
 {
-    use HasUuids;
+    use BelongsToTenant, HasUuids;
 
     protected $table = 'notifications';
 

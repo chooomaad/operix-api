@@ -29,7 +29,8 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        // Contexte tenant de la requête (renseigné par le middleware ResolveTenant).
+        $this->app->singleton(\App\Support\TenantContext::class);
     }
 
     public function boot(): void
