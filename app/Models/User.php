@@ -13,6 +13,7 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable, HasRoles;
 
     protected $fillable = [
+        'tenant_id',
         'name', 'email', 'password',
         'role', 'matricule', 'phone', 'avatar', 'is_active', 'last_login_at',
     ];
@@ -47,5 +48,10 @@ class User extends Authenticatable
     public function activityLogs()
     {
         return $this->hasMany(ActivityLog::class);
+    }
+
+    public function tenant()
+    {
+        return $this->belongsTo(Tenant::class);
     }
 }
