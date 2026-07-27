@@ -4,20 +4,24 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use App\Models\Organisation;
+use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Department;
+use App\Support\TenantContext;
 
 class TcnSeeder extends Seeder
 {
     public function run(): void
     {
         // Organisation unique TCN
-        Organisation::firstOrCreate(
-            ['short_name' => 'TCN'],
+        $tenant = Tenant::firstOrCreate(
+            ['slug' => 'tcn'],
             [
                 'name'          => 'Terminal à Conteneurs de Nouakchott',
                 'short_name'    => 'TCN',
+                'status'        => 'active',
+                'plan'          => 'enterprise',
+                'max_employees' => 100000,
                 'primary_color' => '#0f2847',
                 'country'       => 'MR',
                 'timezone'      => 'Africa/Nouakchott',
@@ -34,8 +38,10 @@ class TcnSeeder extends Seeder
                 'password'  => Hash::make('Operix2026'),
                 'role'      => 'admin',
                 'is_active' => true,
+                'tenant_id' => $tenant->id,
             ]
         );
+        User::where('matricule', 'TCN-ADM-001')->update(['tenant_id' => $tenant->id]);
 
         // Agent HSSE par défaut
         User::updateOrCreate(
@@ -46,8 +52,12 @@ class TcnSeeder extends Seeder
                 'password'  => Hash::make('Operix2026'),
                 'role'      => 'agent',
                 'is_active' => true,
+                'tenant_id' => $tenant->id,
             ]
         );
+        User::where('matricule', 'TCN-HSS-001')->update(['tenant_id' => $tenant->id]);
+
+        app(TenantContext::class)->set($tenant->id);
 
         // Départements TCN
         $departments = ['HSSE', 'Operations', 'Maintenance', 'RH', 'Finance', 'IT', 'Sécurité', 'Administration'];

@@ -11,11 +11,11 @@ use App\Models\EnvironmentReport;
 use App\Models\Formation;
 use App\Models\GembaWalk;
 use App\Models\MedicalVisit;
-use App\Models\Organisation;
 use App\Models\PermitToWork;
 use App\Models\SafetyIncident;
 use App\Models\SafetyNearMiss;
 use App\Models\Visitor;
+use App\Models\Tenant;
 use App\Traits\HandlesApiResources;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -26,16 +26,17 @@ class ReportController extends Controller
 {
     use HandlesApiResources;
 
-    private function orgBranding(): array
+    private function orgBranding(Request $request): array
     {
-        $org = Organisation::first();
+        $tenant = $request->user()?->tenant ?? Tenant::where('slug', 'tcn')->first();
 
         $logoB64 = null;
-        $logoPaths = [
+        $logoPaths = array_filter([
+            $tenant?->logo ? storage_path('app/public/' . $tenant->logo) : null,
             storage_path('app/public/logos/logo-tcn.png'),
             storage_path('app/public/logos/logo-operix.png'),
             public_path('storage/logos/logo-tcn.png'),
-        ];
+        ]);
         foreach ($logoPaths as $path) {
             if (file_exists($path) && extension_loaded('gd')) {
                 // Redimensionner à 120x120 max pour alléger DomPDF
@@ -60,14 +61,14 @@ class ReportController extends Controller
             }
         }
 
-        $rawColor = trim($org?->primary_color ?? '');
+        $rawColor = trim($tenant?->primary_color ?? '');
         // Reject white, near-white, or empty — always use a dark readable color for PDFs
         $invalidColors = ['#ffffff', '#fff', 'ffffff', 'fff', '#fefefe', '#f0f0f0', ''];
         $brandColor = (!in_array(strtolower($rawColor), $invalidColors)) ? $rawColor : '#0f2847';
 
         return [
-            'name'   => $org?->name       ?? 'Terminal à Conteneurs de Nouakchott',
-            'short'  => $org?->short_name ?? 'TCN',
+            'name'   => $tenant?->name       ?? 'Terminal à Conteneurs de Nouakchott',
+            'short'  => $tenant?->short_name ?? 'TCN',
             'color'  => $brandColor,
             'logo'   => $logoB64,
         ];
@@ -81,7 +82,7 @@ class ReportController extends Controller
 
         $year  = $request->integer('year', (int) now()->year);
         $month = now()->month;
-        $org   = $this->orgBranding();
+        $org   = $this->orgBranding($request);
 
         $employees   = $this->employeeKpis($month, $year);
         $safety      = $this->safetyKpis($month, $year);
@@ -138,7 +139,7 @@ class ReportController extends Controller
             'type'     => 'nullable|string',
         ]);
 
-        $org   = $this->orgBranding();
+        $org   = $this->orgBranding($request);
         $query = SafetyIncident::query()->with('reporter:id,name')->orderByDesc('date');
 
         $this->applyDateFilters($query, $validated, 'date');
@@ -179,7 +180,7 @@ class ReportController extends Controller
     // ── Incident detail PDF ───────────────────────────────────────────────────
     public function incidentDetailPdf(Request $request, int $id): Response
     {
-        $org      = $this->orgBranding();
+        $org      = $this->orgBranding($request);
         $incident = SafetyIncident::with('reporter:id,name')->findOrFail($id);
 
         $pdf = Pdf::loadView('pdf.incident_detail', [
@@ -200,7 +201,7 @@ class ReportController extends Controller
     public function nearMissPdf(Request $request): Response
     {
         $validated = $request->validate(['from' => 'nullable|date', 'to' => 'nullable|date', 'status' => 'nullable|string']);
-        $org       = $this->orgBranding();
+        $org       = $this->orgBranding($request);
 
         $query = SafetyNearMiss::query()->with('reporter:id,name')->orderByDesc('date');
         $this->applyDateFilters($query, $validated, 'date');
@@ -232,7 +233,7 @@ class ReportController extends Controller
     public function breachesPdf(Request $request): Response
     {
         $validated = $request->validate(['from' => 'nullable|date', 'to' => 'nullable|date', 'status' => 'nullable|string']);
-        $org       = $this->orgBranding();
+        $org       = $this->orgBranding($request);
 
         $query = Breach::query()->with('employee:id,nom,prenom,matricule')->orderByDesc('date');
         $this->applyDateFilters($query, $validated, 'date');
@@ -264,7 +265,7 @@ class ReportController extends Controller
     public function environmentPdf(Request $request): Response
     {
         $validated = $request->validate(['from' => 'nullable|date', 'to' => 'nullable|date', 'status' => 'nullable|string', 'type' => 'nullable|string']);
-        $org       = $this->orgBranding();
+        $org       = $this->orgBranding($request);
 
         $query = EnvironmentReport::query()->with('reporter:id,name')->orderByDesc('date');
         $this->applyDateFilters($query, $validated, 'date');
@@ -331,7 +332,7 @@ class ReportController extends Controller
     // ── Employee profile PDF ──────────────────────────────────────────────────
     public function employeeProfilePdf(Request $request, int $id): Response
     {
-        $org      = $this->orgBranding();
+        $org      = $this->orgBranding($request);
         $employee = Employee::with('department:id,name')->findOrFail($id);
 
         $pdf = Pdf::loadView('pdf.employee_profile', [
@@ -355,7 +356,7 @@ class ReportController extends Controller
     public function permitsPdf(Request $request): Response
     {
         $validated = $request->validate(['from' => 'nullable|date', 'to' => 'nullable|date', 'status' => 'nullable|string', 'type' => 'nullable|string']);
-        $org       = $this->orgBranding();
+        $org       = $this->orgBranding($request);
 
         $query = PermitToWork::query()
             ->with(['contractor:id,company_name', 'requestedBy:id,name'])

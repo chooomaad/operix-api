@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\PermitToWorkController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\SafetyTrackerController;
 use App\Http\Controllers\Api\SettingsController;
+use App\Models\Tenant;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\VisitorController;
@@ -44,13 +45,13 @@ Route::prefix('v1')->group(function () {
 
     // ── Organisation info (public — login page) ───────────────────────────────
     Route::get('/organisation', function () {
-        $org = \App\Models\Organisation::first();
+        $tenant = Tenant::where('slug', 'tcn')->first();
         return response()->json([
-            'name'          => $org?->name          ?? 'Terminal à Conteneurs de Nouakchott',
-            'short_name'    => $org?->short_name     ?? 'TCN',
-            'logo_url'      => $org?->logo ? asset('storage/' . $org->logo) : null,
-            'primary_color' => $org?->primary_color  ?? '#0f2847',
-            'country'       => $org?->country         ?? 'MR',
+            'name'          => $tenant?->name          ?? 'Terminal à Conteneurs de Nouakchott',
+            'short_name'    => $tenant?->short_name     ?? 'TCN',
+            'logo_url'      => $tenant?->logo ? asset('storage/' . $tenant->logo) : null,
+            'primary_color' => $tenant?->primary_color  ?? '#0f2847',
+            'country'       => $tenant?->country         ?? 'MR',
         ]);
     });
 

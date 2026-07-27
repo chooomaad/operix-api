@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\RequestOtpRequest;
 use App\Http\Requests\Auth\VerifyOtpRequest;
 use App\Mail\OtpMail;
-use App\Models\Organisation;
 use App\Models\OtpToken;
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -95,7 +95,7 @@ class AuthController extends Controller
         return response()->json([
             'token'        => $token,
             'user'         => $this->formatUser($user),
-            'organisation' => $this->orgInfo(),
+            'organisation' => $this->orgInfo($user),
         ]);
     }
 
@@ -127,15 +127,17 @@ class AuthController extends Controller
         return response()->json([
             'token'        => $token,
             'user'         => $this->formatUser($user),
-            'organisation' => $this->orgInfo(),
+            'organisation' => $this->orgInfo($user),
         ]);
     }
 
     public function me(Request $request): JsonResponse
     {
+        $user = $request->user();
+
         return response()->json([
-            'user'         => $this->formatUser($request->user()),
-            'organisation' => $this->orgInfo(),
+            'user'         => $this->formatUser($user),
+            'organisation' => $this->orgInfo($user),
         ]);
     }
 
@@ -259,17 +261,18 @@ class AuthController extends Controller
         ];
     }
 
-    private function orgInfo(): array
+    private function orgInfo(?User $user = null): array
     {
-        $org = Organisation::first();
+        $tenant = $user?->tenant ?? Tenant::where('slug', 'tcn')->first();
+
         return [
-            'name'          => $org?->name          ?? 'Terminal à Conteneurs de Nouakchott',
-            'short_name'    => $org?->short_name     ?? 'TCN',
-            'logo_url'      => $org?->logo ? asset('storage/' . $org->logo) : null,
-            'primary_color' => $org?->primary_color  ?? '#0f2847',
-            'locale'        => $org?->locale          ?? 'fr',
-            'country'       => $org?->country         ?? 'MR',
-            'timezone'      => $org?->timezone        ?? 'Africa/Nouakchott',
+            'name'          => $tenant?->name          ?? 'Terminal à Conteneurs de Nouakchott',
+            'short_name'    => $tenant?->short_name     ?? 'TCN',
+            'logo_url'      => $tenant?->logo ? asset('storage/' . $tenant->logo) : null,
+            'primary_color' => $tenant?->primary_color  ?? '#0f2847',
+            'locale'        => $tenant?->locale          ?? 'fr',
+            'country'       => $tenant?->country         ?? 'MR',
+            'timezone'      => $tenant?->timezone        ?? 'Africa/Nouakchott',
         ];
     }
 
