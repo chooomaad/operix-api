@@ -55,6 +55,12 @@ Route::prefix('v1')->group(function () {
         ]);
     });
 
+    // ── Téléchargement média via URL signée (sert les <img> sans token) ────────
+    // La signature est émise côté serveur uniquement pour un média du tenant courant.
+    Route::get('/media/{media}/download', [MediaController::class, 'download'])
+        ->middleware('signed')
+        ->name('media.download');
+
     // ── Auth (public) ─────────────────────────────────────────────────────────
     Route::prefix('auth')->group(function () {
         Route::post('/request-otp', [AuthController::class, 'requestOtp']);
