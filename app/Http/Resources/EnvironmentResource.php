@@ -27,6 +27,7 @@ class EnvironmentResource extends JsonResource
             'corrective_action_due' => $this->corrective_action_due?->format('Y-m-d'),
             'status'                => $this->status,
             'image'                 => $this->image,
+            'image_url'             => app(\App\Services\TenantFileService::class)->url($this->image),
             'reported_by'           => $this->whenLoaded('reporter', fn() => [
                 'id'   => $this->reporter->id,
                 'name' => $this->reporter->name,

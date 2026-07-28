@@ -47,7 +47,7 @@ class IncidentController extends Controller
         $data['reference']   = $this->generateReference('INC', SafetyIncident::class);
 
         if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('operix/incidents', 'public');
+            $data['image'] = app(\App\Services\TenantFileService::class)->store($request->file('image'), 'incidents');
         }
 
         $incident = SafetyIncident::create($data);

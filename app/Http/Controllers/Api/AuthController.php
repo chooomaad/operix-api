@@ -268,7 +268,7 @@ class AuthController extends Controller
         return [
             'name'          => $tenant?->name          ?? 'Terminal à Conteneurs de Nouakchott',
             'short_name'    => $tenant?->short_name     ?? 'TCN',
-            'logo_url'      => $tenant?->logo ? asset('storage/' . $tenant->logo) : null,
+            'logo_url'      => app(\App\Services\TenantFileService::class)->url($tenant?->logo),
             'primary_color' => $tenant?->primary_color  ?? '#0f2847',
             'locale'        => $tenant?->locale          ?? 'fr',
             'country'       => $tenant?->country         ?? 'MR',

@@ -27,6 +27,7 @@ class GembaWalkResource extends JsonResource
             'priority'        => $this->priority,
             'status'          => $this->status,
             'image'           => $this->image,
+            'image_url'       => app(\App\Services\TenantFileService::class)->url($this->image),
             'is_overdue'      => $this->due_date && $this->due_date->isPast() && $this->status !== 'resolved',
             'created_by'      => $this->whenLoaded('creator', fn() => [
                 'id'   => $this->creator->id,

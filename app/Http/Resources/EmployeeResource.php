@@ -36,6 +36,7 @@ class EmployeeResource extends JsonResource
             'contact_urgence_tel'   => $this->contact_urgence_tel,
             'is_active'             => $this->is_active,
             'photo'                 => $this->photo,
+            'photo_url'             => app(\App\Services\TenantFileService::class)->url($this->photo),
             'department'            => $this->whenLoaded('department', fn () => [
                 'id'   => $this->department->id,
                 'name' => $this->department->name,

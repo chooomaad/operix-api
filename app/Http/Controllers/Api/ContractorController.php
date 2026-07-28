@@ -48,7 +48,7 @@ class ContractorController extends Controller
         $data = $request->validated();
 
         if ($request->hasFile('logo')) {
-            $data['logo'] = $request->file('logo')->store('operix/contractors', 'public');
+            $data['logo'] = app(\App\Services\TenantFileService::class)->store($request->file('logo'), 'contractors');
         }
 
         $contractor = Contractor::create($data);

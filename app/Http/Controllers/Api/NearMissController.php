@@ -45,7 +45,7 @@ class NearMissController extends Controller
         $data['reference']   = $this->generateReference('NM', SafetyNearMiss::class);
 
         if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('operix/near-miss', 'public');
+            $data['image'] = app(\App\Services\TenantFileService::class)->store($request->file('image'), 'near-miss');
         }
 
         $nearMiss = SafetyNearMiss::create($data);

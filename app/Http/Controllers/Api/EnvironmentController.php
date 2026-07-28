@@ -46,7 +46,7 @@ class EnvironmentController extends Controller
         $data['reference']   = $this->generateReference('ENV', EnvironmentReport::class);
 
         if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('operix/environment', 'public');
+            $data['image'] = app(\App\Services\TenantFileService::class)->store($request->file('image'), 'environment');
         }
 
         $report = EnvironmentReport::create($data);

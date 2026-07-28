@@ -48,7 +48,7 @@ class EquipmentController extends Controller
         $data = $request->validated();
 
         if ($request->hasFile('photo')) {
-            $data['photo'] = $request->file('photo')->store('operix/equipment', 'public');
+            $data['photo'] = app(\App\Services\TenantFileService::class)->store($request->file('photo'), 'equipment');
         }
 
         $equipment = Equipment::create($data);

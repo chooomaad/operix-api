@@ -53,7 +53,7 @@ class GembaWalkController extends Controller
         $data['created_by'] = $request->user()->id;
 
         if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('operix/gemba', 'public');
+            $data['image'] = app(\App\Services\TenantFileService::class)->store($request->file('image'), 'gemba');
         }
 
         $walk = GembaWalk::create($data);
@@ -74,7 +74,7 @@ class GembaWalkController extends Controller
         $data = $request->validated();
 
         if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('operix/gemba', 'public');
+            $data['image'] = app(\App\Services\TenantFileService::class)->store($request->file('image'), 'gemba');
         } elseif ($request->input('remove_image')) {
             $data['image'] = null;
         }

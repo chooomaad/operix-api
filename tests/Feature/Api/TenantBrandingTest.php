@@ -80,9 +80,10 @@ class TenantBrandingTest extends TestCase
             ->assertJsonPath('primary_color', '#222222');
     }
 
-    public function test_branding_logo_is_stored_under_current_tenant(): void
+    public function test_branding_logo_is_stored_privately_under_current_tenant(): void
     {
-        Storage::fake('public');
+        // Le logo est désormais stocké sur le disque PRIVÉ (tenant-media), préfixé tenant.
+        Storage::fake('tenant-media');
 
         $tenantA = Tenant::factory()->create(['name' => 'Alpha']);
         $tenantB = Tenant::factory()->create(['name' => 'Beta']);
@@ -97,8 +98,8 @@ class TenantBrandingTest extends TestCase
         $tenantA->refresh();
         $tenantB->refresh();
 
-        $this->assertStringStartsWith("operix/tenants/{$tenantA->id}/branding/", $tenantA->logo);
+        $this->assertStringStartsWith("tenants/{$tenantA->id}/branding/", $tenantA->logo);
         $this->assertNull($tenantB->logo);
-        Storage::disk('public')->assertExists($tenantA->logo);
+        Storage::disk('tenant-media')->assertExists($tenantA->logo);
     }
 }

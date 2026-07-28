@@ -46,7 +46,7 @@ class VisitorController extends Controller
         $data['checked_in_at'] = now();
 
         if ($request->hasFile('photo')) {
-            $data['photo'] = $request->file('photo')->store('operix/visitors', 'public');
+            $data['photo'] = app(\App\Services\TenantFileService::class)->store($request->file('photo'), 'visitors');
         }
 
         $visitor = Visitor::create($data);

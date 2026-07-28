@@ -49,7 +49,7 @@ Route::prefix('v1')->group(function () {
         return response()->json([
             'name'          => $tenant?->name          ?? 'Terminal à Conteneurs de Nouakchott',
             'short_name'    => $tenant?->short_name     ?? 'TCN',
-            'logo_url'      => $tenant?->logo ? asset('storage/' . $tenant->logo) : null,
+            'logo_url'      => app(\App\Services\TenantFileService::class)->url($tenant?->logo),
             'primary_color' => $tenant?->primary_color  ?? '#0f2847',
             'country'       => $tenant?->country         ?? 'MR',
         ]);
@@ -60,6 +60,11 @@ Route::prefix('v1')->group(function () {
     Route::get('/media/{media}/download', [MediaController::class, 'download'])
         ->middleware('signed')
         ->name('media.download');
+
+    // ── Fichiers par-champ (photos/images/logos) via URL signée privée ─────────
+    Route::get('/files/serve', [\App\Http\Controllers\Api\FileController::class, 'serve'])
+        ->middleware('signed')
+        ->name('files.serve');
 
     // ── Auth (public) ─────────────────────────────────────────────────────────
     Route::prefix('auth')->group(function () {

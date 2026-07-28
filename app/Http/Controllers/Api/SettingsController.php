@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
+use App\Services\TenantFileService;
 use App\Traits\HandlesApiResources;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class SettingsController extends Controller
 {
@@ -22,7 +22,7 @@ class SettingsController extends Controller
             'name'          => $tenant->name,
             'short_name'    => $tenant->short_name,
             'logo'          => $tenant->logo,
-            'logo_url'      => $tenant->logo ? Storage::disk('public')->url($tenant->logo) : null,
+            'logo_url'      => app(TenantFileService::class)->url($tenant->logo),
             'primary_color' => $tenant->primary_color,
             'country'       => $tenant->country,
             'timezone'      => $tenant->timezone,
@@ -60,18 +60,14 @@ class SettingsController extends Controller
 
         $tenant = $request->user()->tenant;
 
-        if ($tenant->logo) {
-            Storage::disk('public')->delete($tenant->logo);
-        }
-
-        $path = $request->file('logo')->store("operix/tenants/{$tenant->id}/branding", 'public');
+        $path = app(TenantFileService::class)->replace($tenant->logo, $request->file('logo'), 'branding');
         $tenant->update(['logo' => $path]);
 
         $this->auditLog($request, 'logo_uploaded', Tenant::class, $tenant->id);
 
         return response()->json([
             'logo'     => $path,
-            'logo_url' => Storage::disk('public')->url($path),
+            'logo_url' => app(TenantFileService::class)->url($path),
             'message'  => 'Logo mis à jour.',
         ]);
     }
@@ -81,7 +77,7 @@ class SettingsController extends Controller
         $tenant = $request->user()->tenant;
 
         if ($tenant->logo) {
-            Storage::disk('public')->delete($tenant->logo);
+            app(TenantFileService::class)->delete($tenant->logo);
             $tenant->update(['logo' => null]);
             $this->auditLog($request, 'logo_deleted', Tenant::class, $tenant->id);
         }
