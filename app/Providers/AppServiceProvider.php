@@ -31,6 +31,13 @@ class AppServiceProvider extends ServiceProvider
     {
         // Contexte tenant de la requête (renseigné par le middleware ResolveTenant).
         $this->app->singleton(\App\Support\TenantContext::class);
+
+        // Prestataire de paiement actif (aucun provider réel — 'fake' par défaut).
+        $this->app->singleton(\App\Payments\PaymentProvider::class, function () {
+            return match (config('operix.payment.provider', 'fake')) {
+                default => new \App\Payments\FakePaymentProvider(),
+            };
+        });
     }
 
     public function boot(): void
