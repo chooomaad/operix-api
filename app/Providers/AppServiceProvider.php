@@ -33,8 +33,18 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(\App\Support\TenantContext::class);
 
         // Prestataire de paiement actif (aucun provider réel — 'fake' par défaut).
-        $this->app->singleton(\App\Payments\PaymentProvider::class, function () {
-            return match (config('operix.payment.provider', 'fake')) {
+        $this->app->singleton(\App\Payments\PaymentProvider::class, function ($app) {
+            $provider = config('operix.payment.provider', 'fake');
+
+            // GARDE-FOU : le provider fictif ne doit JAMAIS être actif en production
+            // (sinon un faux paiement pourrait être accepté comme réel). Fail-closed.
+            if ($provider === 'fake' && $app->environment('production')) {
+                throw new \RuntimeException(
+                    'FakePaymentProvider interdit en production. Configurez un vrai prestataire via OPERIX_PAYMENT_PROVIDER.'
+                );
+            }
+
+            return match ($provider) {
                 default => new \App\Payments\FakePaymentProvider(),
             };
         });
