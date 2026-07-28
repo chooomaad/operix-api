@@ -14,7 +14,7 @@ class UpdateEquipmentRequest extends FormRequest
         $equipment = $this->route('id');
 
         return [
-            'code'                      => ['nullable', 'string', 'max:255', Rule::unique('equipment', 'code')->ignore($equipment)],
+            'code'                      => ['nullable', 'string', 'max:255', Rule::unique('equipment', 'code')->where('tenant_id', $this->user()->tenant_id)->ignore($equipment)],
             'name'                      => ['sometimes', 'string', 'max:255'],
             'category'                  => ['sometimes', 'in:vehicle,crane,forklift,electrical,pressure,fire,ppe,tool,other'],
             'brand'                     => ['nullable', 'string', 'max:255'],
