@@ -66,6 +66,25 @@ Route::prefix('v1')->group(function () {
         ->middleware('signed')
         ->name('files.serve');
 
+    // ── Plans (public — pricing du site marketing) ────────────────────────────
+    Route::get('/plans', [\App\Http\Controllers\Api\PlanController::class, 'index']);
+
+    // ── Demande de démo (public, rate-limité anti-spam) ───────────────────────
+    Route::post('/demo-requests', [\App\Http\Controllers\Api\DemoRequestController::class, 'store'])
+        ->middleware('throttle:5,1');
+
+    // ── Checkout (public) : crée une commande, montant calculé serveur ────────
+    Route::post('/checkout', [\App\Http\Controllers\Api\CheckoutController::class, 'store'])
+        ->middleware('throttle:10,1');
+
+    // ── Webhook paiement (provider → serveur, SEULE preuve de paiement) ───────
+    // Pas d'auth Sanctum : l'authenticité vient de la signature vérifiée par le provider.
+    Route::post('/webhooks/payments/{provider}', [\App\Http\Controllers\Api\PaymentWebhookController::class, 'handle']);
+
+    // ── Activation du compte (définition du mot de passe via token) ───────────
+    Route::post('/activate', [\App\Http\Controllers\Api\ActivationController::class, 'activate'])
+        ->middleware('throttle:10,1');
+
     // ── Auth (public) ─────────────────────────────────────────────────────────
     Route::prefix('auth')->group(function () {
         Route::post('/request-otp', [AuthController::class, 'requestOtp']);
@@ -343,6 +362,25 @@ Route::prefix('v1')->group(function () {
         ->middleware(['auth:sanctum', 'superadmin'])
         ->group(function () {
             Route::get('/dashboard', [\App\Http\Controllers\SuperAdmin\DashboardController::class, 'index']);
+
+            // Demandes de démo
+            Route::get('/demo-requests',            [\App\Http\Controllers\SuperAdmin\DemoRequestController::class, 'index']);
+            Route::get('/demo-requests/{id}',       [\App\Http\Controllers\SuperAdmin\DemoRequestController::class, 'show']);
+            Route::put('/demo-requests/{id}/status', [\App\Http\Controllers\SuperAdmin\DemoRequestController::class, 'updateStatus']);
+            Route::post('/demo-requests/{id}/convert',[\App\Http\Controllers\SuperAdmin\DemoRequestController::class, 'convert']);
+
+            // Plans (prix administrables)
+            Route::get('/plans',      [\App\Http\Controllers\SuperAdmin\PlanController::class, 'index']);
+            Route::post('/plans',     [\App\Http\Controllers\SuperAdmin\PlanController::class, 'store']);
+            Route::put('/plans/{id}', [\App\Http\Controllers\SuperAdmin\PlanController::class, 'update']);
+
+            // Commandes / Paiements / Abonnements (lecture)
+            Route::get('/orders',            [\App\Http\Controllers\SuperAdmin\OrderController::class, 'index']);
+            Route::get('/orders/{id}',       [\App\Http\Controllers\SuperAdmin\OrderController::class, 'show']);
+            Route::get('/payments',          [\App\Http\Controllers\SuperAdmin\PaymentController::class, 'index']);
+            Route::get('/payments/{id}',     [\App\Http\Controllers\SuperAdmin\PaymentController::class, 'show']);
+            Route::get('/subscriptions',     [\App\Http\Controllers\SuperAdmin\SubscriptionController::class, 'index']);
+            Route::get('/subscriptions/{id}',[\App\Http\Controllers\SuperAdmin\SubscriptionController::class, 'show']);
 
             Route::prefix('tenants')->group(function () {
                 Route::get('/',                 [\App\Http\Controllers\SuperAdmin\TenantController::class, 'index']);
