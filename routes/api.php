@@ -77,6 +77,14 @@ Route::prefix('v1')->group(function () {
     Route::post('/checkout', [\App\Http\Controllers\Api\CheckoutController::class, 'store'])
         ->middleware('throttle:10,1');
 
+    // ── Webhook paiement (provider → serveur, SEULE preuve de paiement) ───────
+    // Pas d'auth Sanctum : l'authenticité vient de la signature vérifiée par le provider.
+    Route::post('/webhooks/payments/{provider}', [\App\Http\Controllers\Api\PaymentWebhookController::class, 'handle']);
+
+    // ── Activation du compte (définition du mot de passe via token) ───────────
+    Route::post('/activate', [\App\Http\Controllers\Api\ActivationController::class, 'activate'])
+        ->middleware('throttle:10,1');
+
     // ── Auth (public) ─────────────────────────────────────────────────────────
     Route::prefix('auth')->group(function () {
         Route::post('/request-otp', [AuthController::class, 'requestOtp']);
