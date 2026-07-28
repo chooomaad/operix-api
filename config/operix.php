@@ -22,4 +22,20 @@ return [
     */
     'signed_url_ttl' => (int) env('MEDIA_SIGNED_URL_TTL', 30),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Commercial (SaaS)
+    |--------------------------------------------------------------------------
+    |
+    | EUR = devise commerciale officielle (source de vérité, montants en centimes).
+    | MRU = devise d'affichage indicative (équivalence calculée via exchange_rates,
+    | jamais hardcodée côté client). default_display_rate = fallback si aucune ligne
+    | en base (valeur PLACEHOLDER — à mettre à jour avec le taux réel).
+    |
+    */
+    'commercial_currency' => env('OPERIX_COMMERCIAL_CURRENCY', 'EUR'),
+    'display_currency'    => env('OPERIX_DISPLAY_CURRENCY', 'MRU'),
+    'default_display_rate' => (float) env('OPERIX_DEFAULT_DISPLAY_RATE', 43.0),
+
 ];
+

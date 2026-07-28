@@ -66,6 +66,9 @@ Route::prefix('v1')->group(function () {
         ->middleware('signed')
         ->name('files.serve');
 
+    // ── Plans (public — pricing du site marketing) ────────────────────────────
+    Route::get('/plans', [\App\Http\Controllers\Api\PlanController::class, 'index']);
+
     // ── Auth (public) ─────────────────────────────────────────────────────────
     Route::prefix('auth')->group(function () {
         Route::post('/request-otp', [AuthController::class, 'requestOtp']);
