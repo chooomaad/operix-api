@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Department;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class DepartmentController extends Controller
 {
@@ -22,7 +23,8 @@ class DepartmentController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'name'        => ['required', 'string', 'max:255', 'unique:departments,name'],
+            // Unicité du nom PAR TENANT (tenant résolu serveur).
+            'name'        => ['required', 'string', 'max:255', Rule::unique('departments', 'name')->where('tenant_id', $request->user()->tenant_id)],
             'code'        => ['nullable', 'string', 'max:50'],
             'description' => ['nullable', 'string'],
         ]);
@@ -43,7 +45,7 @@ class DepartmentController extends Controller
         $department = Department::findOrFail($id);
 
         $validated = $request->validate([
-            'name'        => ['sometimes', 'string', 'max:255'],
+            'name'        => ['sometimes', 'string', 'max:255', Rule::unique('departments', 'name')->where('tenant_id', $request->user()->tenant_id)->ignore($id)],
             'code'        => ['nullable', 'string', 'max:50'],
             'description' => ['nullable', 'string'],
         ]);

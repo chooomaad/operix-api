@@ -3,31 +3,31 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Organisation;
-use App\Traits\HasTenantScope;
+use App\Models\Tenant;
+use App\Services\TenantFileService;
+use App\Traits\HandlesApiResources;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class SettingsController extends Controller
 {
-    use HasTenantScope;
+    use HandlesApiResources;
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $org = Organisation::first() ?? new Organisation();
+        $tenant = $request->user()->tenant;
 
         return response()->json([
-            'id'            => $org->id,
-            'name'          => $org->name,
-            'short_name'    => $org->short_name,
-            'logo'          => $org->logo,
-            'logo_url'      => $org->logo ? Storage::disk('public')->url($org->logo) : null,
-            'primary_color' => $org->primary_color,
-            'country'       => $org->country,
-            'timezone'      => $org->timezone,
-            'locale'        => $org->locale,
-            'settings'      => $org->settings ?? [],
+            'id'            => $tenant->id,
+            'name'          => $tenant->name,
+            'short_name'    => $tenant->short_name,
+            'logo'          => $tenant->logo,
+            'logo_url'      => app(TenantFileService::class)->url($tenant->logo),
+            'primary_color' => $tenant->primary_color,
+            'country'       => $tenant->country,
+            'timezone'      => $tenant->timezone,
+            'locale'        => $tenant->locale,
+            'settings'      => $tenant->settings ?? [],
         ]);
     }
 
@@ -43,13 +43,13 @@ class SettingsController extends Controller
             'settings'      => 'sometimes|array',
         ]);
 
-        $org = Organisation::firstOrCreate([]);
-        $old = $org->toArray();
-        $org->update($validated);
+        $tenant = $request->user()->tenant;
+        $old = $tenant->toArray();
+        $tenant->update($validated);
 
-        $this->auditLog($request, 'settings_updated', Organisation::class, $org->id, $old, $org->fresh()->toArray());
+        $this->auditLog($request, 'settings_updated', Tenant::class, $tenant->id, $old, $tenant->fresh()->toArray());
 
-        return response()->json(['message' => 'Paramètres mis à jour.', 'organisation' => $org->fresh()]);
+        return response()->json(['message' => 'Paramètres mis à jour.', 'organisation' => $tenant->fresh()]);
     }
 
     public function uploadLogo(Request $request): JsonResponse
@@ -58,32 +58,28 @@ class SettingsController extends Controller
             'logo' => 'required|file|image|mimes:png,jpg,jpeg,svg|max:2048',
         ]);
 
-        $org = Organisation::firstOrCreate([]);
+        $tenant = $request->user()->tenant;
 
-        if ($org->logo) {
-            Storage::disk('public')->delete($org->logo);
-        }
+        $path = app(TenantFileService::class)->replace($tenant->logo, $request->file('logo'), 'branding');
+        $tenant->update(['logo' => $path]);
 
-        $path = $request->file('logo')->store('operix/branding', 'public');
-        $org->update(['logo' => $path]);
-
-        $this->auditLog($request, 'logo_uploaded', Organisation::class, $org->id);
+        $this->auditLog($request, 'logo_uploaded', Tenant::class, $tenant->id);
 
         return response()->json([
             'logo'     => $path,
-            'logo_url' => Storage::disk('public')->url($path),
+            'logo_url' => app(TenantFileService::class)->url($path),
             'message'  => 'Logo mis à jour.',
         ]);
     }
 
     public function deleteLogo(Request $request): JsonResponse
     {
-        $org = Organisation::first();
+        $tenant = $request->user()->tenant;
 
-        if ($org && $org->logo) {
-            Storage::disk('public')->delete($org->logo);
-            $org->update(['logo' => null]);
-            $this->auditLog($request, 'logo_deleted', Organisation::class, $org->id);
+        if ($tenant->logo) {
+            app(TenantFileService::class)->delete($tenant->logo);
+            $tenant->update(['logo' => null]);
+            $this->auditLog($request, 'logo_deleted', Tenant::class, $tenant->id);
         }
 
         return response()->json(['message' => 'Logo supprimé.']);

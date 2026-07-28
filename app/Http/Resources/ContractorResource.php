@@ -28,6 +28,7 @@ class ContractorResource extends JsonResource
             'is_expired'       => $this->isExpired(),
             'zones_autorisees' => $this->zones_autorisees,
             'logo'             => $this->logo,
+            'logo_url'         => app(\App\Services\TenantFileService::class)->url($this->logo),
             'notes'            => $this->notes,
             'employees_count'  => $this->whenCounted('employees'),
             'created_at'       => $this->created_at?->format('Y-m-d H:i'),

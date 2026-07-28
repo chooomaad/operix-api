@@ -25,7 +25,7 @@ class SendExpiryNotifications extends Command
 
         $this->info("Vérification des expirations dans les {$days} prochains jours...");
 
-        $adminIds = User::where('is_active', true)->where('role', 'admin')->pluck('id');
+        $adminIds = User::where('is_active', true)->where('role', 'company_admin')->pluck('id');
 
         if ($adminIds->isEmpty()) {
             $this->warn('Aucun administrateur actif trouvé.');

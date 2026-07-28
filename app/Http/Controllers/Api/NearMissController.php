@@ -7,13 +7,13 @@ use App\Http\Requests\NearMiss\StoreNearMissRequest;
 use App\Http\Requests\NearMiss\UpdateNearMissRequest;
 use App\Http\Resources\NearMissResource;
 use App\Models\SafetyNearMiss;
-use App\Traits\HasTenantScope;
+use App\Traits\HandlesApiResources;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class NearMissController extends Controller
 {
-    use HasTenantScope;
+    use HandlesApiResources;
 
     public function index(Request $request): JsonResponse
     {
@@ -45,7 +45,7 @@ class NearMissController extends Controller
         $data['reference']   = $this->generateReference('NM', SafetyNearMiss::class);
 
         if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('operix/near-miss', 'public');
+            $data['image'] = app(\App\Services\TenantFileService::class)->store($request->file('image'), 'near-miss');
         }
 
         $nearMiss = SafetyNearMiss::create($data);

@@ -7,13 +7,13 @@ use App\Http\Requests\Incident\StoreIncidentRequest;
 use App\Http\Requests\Incident\UpdateIncidentRequest;
 use App\Http\Resources\IncidentResource;
 use App\Models\SafetyIncident;
-use App\Traits\HasTenantScope;
+use App\Traits\HandlesApiResources;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class IncidentController extends Controller
 {
-    use HasTenantScope;
+    use HandlesApiResources;
 
     public function index(Request $request): JsonResponse
     {
@@ -47,7 +47,7 @@ class IncidentController extends Controller
         $data['reference']   = $this->generateReference('INC', SafetyIncident::class);
 
         if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('operix/incidents', 'public');
+            $data['image'] = app(\App\Services\TenantFileService::class)->store($request->file('image'), 'incidents');
         }
 
         $incident = SafetyIncident::create($data);

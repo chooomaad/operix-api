@@ -17,7 +17,7 @@ class AuthTest extends TestCase
         $tenant = Tenant::factory()->create(['status' => 'active']);
         $admin  = User::factory()->create([
             'tenant_id' => $tenant->id,
-            'role'      => 'admin',
+            'role'      => 'company_admin',
             'is_active' => true,
         ]);
         return [$tenant, $admin];
@@ -86,11 +86,43 @@ class AuthTest extends TestCase
     public function test_suspended_tenant_is_blocked(): void
     {
         $tenant = Tenant::factory()->create(['status' => 'suspended']);
-        $admin  = User::factory()->create(['tenant_id' => $tenant->id, 'role' => 'admin']);
+        $admin  = User::factory()->create(['tenant_id' => $tenant->id, 'role' => 'company_admin']);
 
         $this->actingAs($admin)
             ->getJson('/api/v1/auth/me')
             ->assertStatus(403)
             ->assertJsonFragment(['message' => 'Votre compte est suspendu. Contactez support@operix-app.com']);
+    }
+
+    public function test_trial_tenant_is_allowed(): void
+    {
+        $tenant = Tenant::factory()->create(['status' => 'trial']);
+        $admin  = User::factory()->create(['tenant_id' => $tenant->id, 'role' => 'company_admin']);
+
+        $this->actingAs($admin)
+            ->getJson('/api/v1/auth/me')
+            ->assertStatus(200);
+    }
+
+    public function test_expired_trial_is_blocked(): void
+    {
+        $tenant = Tenant::factory()->create([
+            'status'          => 'trial',
+            'demo_expires_at' => now()->subDay(),
+        ]);
+        $admin = User::factory()->create(['tenant_id' => $tenant->id, 'role' => 'company_admin']);
+
+        $this->actingAs($admin)
+            ->getJson('/api/v1/auth/me')
+            ->assertStatus(403);
+    }
+
+    public function test_business_user_without_tenant_is_blocked(): void
+    {
+        $admin = User::factory()->create(['tenant_id' => null, 'role' => 'company_admin']);
+
+        $this->actingAs($admin)
+            ->getJson('/api/v1/auth/me')
+            ->assertStatus(403);
     }
 }

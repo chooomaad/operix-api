@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\RequestOtpRequest;
 use App\Http\Requests\Auth\VerifyOtpRequest;
 use App\Mail\OtpMail;
-use App\Models\Organisation;
 use App\Models\OtpToken;
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,6 +23,10 @@ class AuthController extends Controller
         $user = User::where('email', $email)->where('is_active', true)->first();
         if (!$user) {
             return response()->json(['message' => 'Aucun compte actif trouvé pour cet email.'], 404);
+        }
+
+        if ($failure = $this->tenantAuthFailure($user)) {
+            return $failure;
         }
 
         OtpToken::where('email', $email)->where('used', false)->delete();
@@ -80,6 +84,10 @@ class AuthController extends Controller
             return response()->json(['message' => 'Compte introuvable.'], 404);
         }
 
+        if ($failure = $this->tenantAuthFailure($user)) {
+            return $failure;
+        }
+
         $user->tokens()->delete();
         $token = $user->createToken('operix-api')->plainTextToken;
         $user->update(['last_login_at' => now()]);
@@ -87,7 +95,7 @@ class AuthController extends Controller
         return response()->json([
             'token'        => $token,
             'user'         => $this->formatUser($user),
-            'organisation' => $this->orgInfo(),
+            'organisation' => $this->orgInfo($user),
         ]);
     }
 
@@ -108,6 +116,10 @@ class AuthController extends Controller
             return response()->json(['message' => 'Votre compte est en attente de validation par l\'administrateur.'], 403);
         }
 
+        if ($failure = $this->tenantAuthFailure($user)) {
+            return $failure;
+        }
+
         $user->tokens()->delete();
         $token = $user->createToken('tcn-frontend')->plainTextToken;
         $user->update(['last_login_at' => now()]);
@@ -115,15 +127,17 @@ class AuthController extends Controller
         return response()->json([
             'token'        => $token,
             'user'         => $this->formatUser($user),
-            'organisation' => $this->orgInfo(),
+            'organisation' => $this->orgInfo($user),
         ]);
     }
 
     public function me(Request $request): JsonResponse
     {
+        $user = $request->user();
+
         return response()->json([
-            'user'         => $this->formatUser($request->user()),
-            'organisation' => $this->orgInfo(),
+            'user'         => $this->formatUser($user),
+            'organisation' => $this->orgInfo($user),
         ]);
     }
 
@@ -166,6 +180,10 @@ class AuthController extends Controller
 
         if (!$user) {
             return response()->json(['message' => 'Si cet email existe, un code vous sera envoyé.']);
+        }
+
+        if ($failure = $this->tenantAuthFailure($user)) {
+            return $failure;
         }
 
         OtpToken::where('email', $email)->where('used', false)->delete();
@@ -218,6 +236,10 @@ class AuthController extends Controller
             return response()->json(['message' => 'Compte introuvable.'], 404);
         }
 
+        if ($failure = $this->tenantAuthFailure($user)) {
+            return $failure;
+        }
+
         $user->update(['password' => Hash::make($request->new_pin)]);
         $user->tokens()->delete();
 
@@ -239,17 +261,43 @@ class AuthController extends Controller
         ];
     }
 
-    private function orgInfo(): array
+    private function orgInfo(?User $user = null): array
     {
-        $org = Organisation::first();
+        $tenant = $user?->tenant ?? Tenant::where('slug', 'tcn')->first();
+
         return [
-            'name'          => $org?->name          ?? 'Terminal à Conteneurs de Nouakchott',
-            'short_name'    => $org?->short_name     ?? 'TCN',
-            'logo_url'      => $org?->logo ? asset('storage/' . $org->logo) : null,
-            'primary_color' => $org?->primary_color  ?? '#0f2847',
-            'locale'        => $org?->locale          ?? 'fr',
-            'country'       => $org?->country         ?? 'MR',
-            'timezone'      => $org?->timezone        ?? 'Africa/Nouakchott',
+            'name'          => $tenant?->name          ?? 'Terminal à Conteneurs de Nouakchott',
+            'short_name'    => $tenant?->short_name     ?? 'TCN',
+            'logo_url'      => app(\App\Services\TenantFileService::class)->url($tenant?->logo),
+            'primary_color' => $tenant?->primary_color  ?? '#0f2847',
+            'locale'        => $tenant?->locale          ?? 'fr',
+            'country'       => $tenant?->country         ?? 'MR',
+            'timezone'      => $tenant?->timezone        ?? 'Africa/Nouakchott',
         ];
+    }
+
+    private function tenantAuthFailure(User $user): ?JsonResponse
+    {
+        if ($user->isSuperAdmin()) {
+            return null;
+        }
+
+        $tenant = $user->tenant;
+
+        if (! $tenant) {
+            return response()->json(['message' => 'Votre compte n\'est rattache a aucune entreprise.'], 403);
+        }
+
+        if ($tenant->isSuspended()) {
+            return response()->json([
+                'message' => 'Votre compte est suspendu. Contactez support@operix-app.com',
+            ], 403);
+        }
+
+        if (! $tenant->allowsApplicationAccess()) {
+            return response()->json(['message' => 'Votre acces a cette entreprise a expire.'], 403);
+        }
+
+        return null;
     }
 }

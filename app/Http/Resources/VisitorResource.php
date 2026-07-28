@@ -33,6 +33,7 @@ class VisitorResource extends JsonResource
             'duration'         => $this->duration,
             'vehicle_plate'    => $this->vehicle_plate,
             'photo'            => $this->photo,
+            'photo_url'        => app(\App\Services\TenantFileService::class)->url($this->photo),
             'notes'            => $this->notes,
             'created_at'       => $this->created_at?->format('Y-m-d H:i'),
         ];

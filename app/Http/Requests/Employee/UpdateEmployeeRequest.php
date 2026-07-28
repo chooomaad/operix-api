@@ -17,7 +17,7 @@ class UpdateEmployeeRequest extends FormRequest
         $employeeId = $this->route('id');
 
         return [
-            'matricule'           => ['sometimes', 'string', 'max:50', Rule::unique('employees', 'matricule')->ignore($employeeId)],
+            'matricule'           => ['sometimes', 'string', 'max:50', Rule::unique('employees', 'matricule')->where('tenant_id', $this->user()->tenant_id)->ignore($employeeId)],
             'nom'                 => ['sometimes', 'string', 'max:100'],
             'prenom'              => ['sometimes', 'string', 'max:100'],
             'email'               => ['nullable', 'email', 'max:255'],

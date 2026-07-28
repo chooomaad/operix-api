@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Employee;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreEmployeeRequest extends FormRequest
 {
@@ -14,7 +15,8 @@ class StoreEmployeeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'matricule'           => ['required', 'string', 'max:50', 'unique:employees,matricule'],
+            // Unicité du matricule PAR TENANT (tenant résolu serveur, jamais depuis le client).
+            'matricule'           => ['required', 'string', 'max:50', Rule::unique('employees', 'matricule')->where('tenant_id', $this->user()->tenant_id)],
             'nom'                 => ['required', 'string', 'max:100'],
             'prenom'              => ['required', 'string', 'max:100'],
             'email'               => ['nullable', 'email', 'max:255'],

@@ -6,13 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Visitor\StoreVisitorRequest;
 use App\Http\Resources\VisitorResource;
 use App\Models\Visitor;
-use App\Traits\HasTenantScope;
+use App\Traits\HandlesApiResources;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class VisitorController extends Controller
 {
-    use HasTenantScope;
+    use HandlesApiResources;
 
     public function index(Request $request): JsonResponse
     {
@@ -46,7 +46,7 @@ class VisitorController extends Controller
         $data['checked_in_at'] = now();
 
         if ($request->hasFile('photo')) {
-            $data['photo'] = $request->file('photo')->store('operix/visitors', 'public');
+            $data['photo'] = app(\App\Services\TenantFileService::class)->store($request->file('photo'), 'visitors');
         }
 
         $visitor = Visitor::create($data);

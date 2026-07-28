@@ -30,6 +30,7 @@ class EquipmentResource extends JsonResource
             'status'                    => $this->status,
             'location'                  => $this->location,
             'photo'                     => $this->photo,
+            'photo_url'                 => app(\App\Services\TenantFileService::class)->url($this->photo),
             'notes'                     => $this->notes,
             'assigned_employee'         => $this->whenLoaded('assignedEmployee', fn() => [
                 'id'        => $this->assignedEmployee->id,

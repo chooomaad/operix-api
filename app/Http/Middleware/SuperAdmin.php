@@ -10,7 +10,7 @@ class SuperAdmin
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->user() || $request->user()->role !== 'super_admin') {
+        if (! $request->user() || ! $request->user()->hasApplicationRole('super_admin')) {
             return response()->json(['message' => 'Accès Super Admin requis.'], 403);
         }
 

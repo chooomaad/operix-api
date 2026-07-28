@@ -57,7 +57,7 @@ class EmployeeController extends Controller
         $data = $request->validated();
 
         if ($request->hasFile('photo')) {
-            $data['photo'] = $request->file('photo')->store('operix/employees', 'public');
+            $data['photo'] = app(\App\Services\TenantFileService::class)->store($request->file('photo'), 'employees');
         }
 
         $employee = Employee::create($data);
@@ -82,9 +82,9 @@ class EmployeeController extends Controller
 
         if ($request->hasFile('photo')) {
             if ($employee->photo) {
-                Storage::disk('public')->delete($employee->photo);
+                app(\App\Services\TenantFileService::class)->delete($employee->photo);
             }
-            $data['photo'] = $request->file('photo')->store('operix/employees', 'public');
+            $data['photo'] = app(\App\Services\TenantFileService::class)->store($request->file('photo'), 'employees');
         }
 
         $employee->update($data);

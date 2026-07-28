@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\SafetyIncident;
 use App\Models\SafetyNearMiss;
-use App\Traits\HasTenantScope;
+use App\Traits\HandlesApiResources;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,7 +14,7 @@ use Rap2hpoutre\FastExcel\FastExcel;
 
 class ImportController extends Controller
 {
-    use HasTenantScope;
+    use HandlesApiResources;
 
     public function previewEmployees(Request $request): JsonResponse
     {

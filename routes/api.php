@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\PermitToWorkController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\SafetyTrackerController;
 use App\Http\Controllers\Api\SettingsController;
+use App\Models\Tenant;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\VisitorController;
@@ -44,15 +45,26 @@ Route::prefix('v1')->group(function () {
 
     // ── Organisation info (public — login page) ───────────────────────────────
     Route::get('/organisation', function () {
-        $org = \App\Models\Organisation::first();
+        $tenant = Tenant::where('slug', 'tcn')->first();
         return response()->json([
-            'name'          => $org?->name          ?? 'Terminal à Conteneurs de Nouakchott',
-            'short_name'    => $org?->short_name     ?? 'TCN',
-            'logo_url'      => $org?->logo ? asset('storage/' . $org->logo) : null,
-            'primary_color' => $org?->primary_color  ?? '#0f2847',
-            'country'       => $org?->country         ?? 'MR',
+            'name'          => $tenant?->name          ?? 'Terminal à Conteneurs de Nouakchott',
+            'short_name'    => $tenant?->short_name     ?? 'TCN',
+            'logo_url'      => app(\App\Services\TenantFileService::class)->url($tenant?->logo),
+            'primary_color' => $tenant?->primary_color  ?? '#0f2847',
+            'country'       => $tenant?->country         ?? 'MR',
         ]);
     });
+
+    // ── Téléchargement média via URL signée (sert les <img> sans token) ────────
+    // La signature est émise côté serveur uniquement pour un média du tenant courant.
+    Route::get('/media/{media}/download', [MediaController::class, 'download'])
+        ->middleware('signed')
+        ->name('media.download');
+
+    // ── Fichiers par-champ (photos/images/logos) via URL signée privée ─────────
+    Route::get('/files/serve', [\App\Http\Controllers\Api\FileController::class, 'serve'])
+        ->middleware('signed')
+        ->name('files.serve');
 
     // ── Auth (public) ─────────────────────────────────────────────────────────
     Route::prefix('auth')->group(function () {
@@ -65,7 +77,8 @@ Route::prefix('v1')->group(function () {
     });
 
     // ── Routes protégées ─────────────────────────────────────────────────────
-    Route::middleware('auth:sanctum')->group(function () {
+    // `tenant` résout le tenant courant depuis l'utilisateur authentifié (jamais le client).
+    Route::middleware(['auth:sanctum', 'tenant', 'tenant.context'])->group(function () {
 
         // Auth — tous rôles
         Route::get('/auth/me',      [AuthController::class, 'me']);
@@ -102,10 +115,10 @@ Route::prefix('v1')->group(function () {
         });
 
         // ── Admin seulement ───────────────────────────────────────────────────
-        Route::middleware('role:admin')->group(function () {
+        Route::middleware('role:company_admin,hsse_manager,supervisor,agent')->group(function () {
 
             // ── Paramètres / Branding ─────────────────────────────────────────
-            Route::prefix('settings')->group(function () {
+            Route::middleware('role:company_admin')->prefix('settings')->group(function () {
                 Route::get('/',        [SettingsController::class, 'index']);
                 Route::put('/',        [SettingsController::class, 'update']);
                 Route::post('/logo',   [SettingsController::class, 'uploadLogo']);
@@ -113,7 +126,7 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Utilisateurs ──────────────────────────────────────────────────
-            Route::prefix('users')->group(function () {
+            Route::middleware('role:company_admin')->prefix('users')->group(function () {
                 Route::get('/',        [UserController::class, 'index']);
                 Route::post('/',       [UserController::class, 'store']);
                 Route::get('/{id}',    [UserController::class, 'show']);
@@ -124,24 +137,28 @@ Route::prefix('v1')->group(function () {
             // ── Départements ──────────────────────────────────────────────────
             Route::prefix('departments')->group(function () {
                 Route::get('/',        [DepartmentController::class, 'index']);
-                Route::post('/',       [DepartmentController::class, 'store']);
                 Route::get('/{id}',    [DepartmentController::class, 'show']);
-                Route::put('/{id}',    [DepartmentController::class, 'update']);
-                Route::delete('/{id}', [DepartmentController::class, 'destroy']);
+                Route::middleware('role:company_admin')->group(function () {
+                    Route::post('/',       [DepartmentController::class, 'store']);
+                    Route::put('/{id}',    [DepartmentController::class, 'update']);
+                    Route::delete('/{id}', [DepartmentController::class, 'destroy']);
+                });
             });
 
             // ── Notifications (envoi + suppression) ───────────────────────────
-            Route::post('/notifications',        [NotificationController::class, 'store']);
-            Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
+            Route::middleware('role:company_admin,hsse_manager')->group(function () {
+                Route::post('/notifications',        [NotificationController::class, 'store']);
+                Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
+            });
 
             // ── Safety Tracker ────────────────────────────────────────────────
-            Route::prefix('safety-tracker')->group(function () {
+            Route::middleware('role:company_admin,hsse_manager,supervisor')->prefix('safety-tracker')->group(function () {
                 Route::get('/',        [SafetyTrackerController::class, 'index']);
                 Route::get('/history', [SafetyTrackerController::class, 'history']);
             });
 
             // ── Rapports PDF ──────────────────────────────────────────────────
-            Route::prefix('reports')->group(function () {
+            Route::middleware('role:company_admin,hsse_manager,supervisor')->prefix('reports')->group(function () {
                 Route::get('/dashboard',              [ReportController::class, 'dashboardPdf']);
                 Route::get('/incidents',              [ReportController::class, 'incidentsPdf']);
                 Route::get('/incidents/{id}',         [ReportController::class, 'incidentDetailPdf']);
@@ -154,7 +171,7 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Exports Excel/CSV ─────────────────────────────────────────────
-            Route::prefix('exports')->group(function () {
+            Route::middleware('role:company_admin,hsse_manager,supervisor')->prefix('exports')->group(function () {
                 Route::get('/employees',           [ExportController::class, 'employees']);
                 Route::get('/incidents',           [ExportController::class, 'incidents']);
                 Route::get('/near-miss',           [ExportController::class, 'nearMiss']);
@@ -169,7 +186,7 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Imports ───────────────────────────────────────────────────────
-            Route::prefix('imports')->group(function () {
+            Route::middleware('role:company_admin,hsse_manager')->prefix('imports')->group(function () {
                 Route::post('/employees/preview', [ImportController::class, 'previewEmployees']);
                 Route::post('/employees',         [ImportController::class, 'importEmployees']);
                 Route::post('/incidents/preview', [ImportController::class, 'previewIncidents']);
@@ -178,13 +195,15 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Employés (écriture) ───────────────────────────────────────────
-            Route::post('/employees',             [EmployeeController::class, 'store']);
-            Route::put('/employees/{id}',         [EmployeeController::class, 'update']);
-            Route::delete('/employees/{id}',      [EmployeeController::class, 'destroy']);
-            Route::get('/employees/{id}/history', [EmployeeController::class, 'history']);
+            Route::middleware('role:company_admin,hsse_manager')->group(function () {
+                Route::post('/employees',             [EmployeeController::class, 'store']);
+                Route::put('/employees/{id}',         [EmployeeController::class, 'update']);
+                Route::delete('/employees/{id}',      [EmployeeController::class, 'destroy']);
+                Route::get('/employees/{id}/history', [EmployeeController::class, 'history']);
+            });
 
             // ── Formations ────────────────────────────────────────────────────
-            Route::prefix('employees/{employeeId}/formations')->group(function () {
+            Route::middleware('role:company_admin,hsse_manager')->prefix('employees/{employeeId}/formations')->group(function () {
                 Route::get('/',        [FormationController::class, 'index']);
                 Route::post('/',       [FormationController::class, 'store']);
                 Route::put('/{id}',    [FormationController::class, 'update']);
@@ -192,7 +211,7 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Certifications ────────────────────────────────────────────────
-            Route::prefix('employees/{employeeId}/certifications')->group(function () {
+            Route::middleware('role:company_admin,hsse_manager')->prefix('employees/{employeeId}/certifications')->group(function () {
                 Route::get('/',        [CertificationController::class, 'index']);
                 Route::post('/',       [CertificationController::class, 'store']);
                 Route::put('/{id}',    [CertificationController::class, 'update']);
@@ -200,7 +219,7 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Visites médicales ─────────────────────────────────────────────
-            Route::prefix('employees/{employeeId}/medical-visits')->group(function () {
+            Route::middleware('role:company_admin,hsse_manager')->prefix('employees/{employeeId}/medical-visits')->group(function () {
                 Route::get('/',        [MedicalVisitController::class, 'index']);
                 Route::post('/',       [MedicalVisitController::class, 'store']);
                 Route::put('/{id}',    [MedicalVisitController::class, 'update']);
@@ -213,13 +232,15 @@ Route::prefix('v1')->group(function () {
                 Route::post('/',           [IncidentController::class, 'store']);
                 Route::get('/stats',       [IncidentController::class, 'stats']);
                 Route::get('/{id}',        [IncidentController::class, 'show']);
-                Route::put('/{id}',        [IncidentController::class, 'update']);
-                Route::delete('/{id}',     [IncidentController::class, 'destroy']);
-                Route::post('/{id}/close', [IncidentController::class, 'close']);
+                Route::middleware('role:company_admin,hsse_manager,supervisor')->put('/{id}', [IncidentController::class, 'update']);
+                Route::middleware('role:company_admin,hsse_manager')->group(function () {
+                    Route::delete('/{id}',     [IncidentController::class, 'destroy']);
+                    Route::post('/{id}/close', [IncidentController::class, 'close']);
+                });
             });
 
             // ── Near Miss ─────────────────────────────────────────────────────
-            Route::prefix('near-miss')->group(function () {
+            Route::middleware('role:company_admin,hsse_manager')->prefix('near-miss')->group(function () {
                 Route::get('/',            [NearMissController::class, 'index']);
                 Route::post('/',           [NearMissController::class, 'store']);
                 Route::get('/{id}',        [NearMissController::class, 'show']);
@@ -229,7 +250,7 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Environnement ─────────────────────────────────────────────────
-            Route::prefix('environment')->group(function () {
+            Route::middleware('role:company_admin,hsse_manager')->prefix('environment')->group(function () {
                 Route::get('/',        [EnvironmentController::class, 'index']);
                 Route::post('/',       [EnvironmentController::class, 'store']);
                 Route::get('/stats',   [EnvironmentController::class, 'stats']);
@@ -240,7 +261,7 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Gemba Walks ───────────────────────────────────────────────────
-            Route::prefix('gemba-walks')->group(function () {
+            Route::middleware('role:company_admin,hsse_manager')->prefix('gemba-walks')->group(function () {
                 Route::get('/',              [GembaWalkController::class, 'index']);
                 Route::post('/',             [GembaWalkController::class, 'store']);
                 Route::get('/stats',         [GembaWalkController::class, 'stats']);
@@ -251,7 +272,7 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Infractions / Breaches ────────────────────────────────────────
-            Route::prefix('breaches')->group(function () {
+            Route::middleware('role:company_admin,hsse_manager')->prefix('breaches')->group(function () {
                 Route::get('/',            [BreachController::class, 'index']);
                 Route::post('/',           [BreachController::class, 'store']);
                 Route::get('/{id}',        [BreachController::class, 'show']);
@@ -261,7 +282,7 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Visiteurs ─────────────────────────────────────────────────────
-            Route::prefix('visitors')->group(function () {
+            Route::middleware('role:company_admin,hsse_manager,supervisor')->prefix('visitors')->group(function () {
                 Route::get('/',               [VisitorController::class, 'index']);
                 Route::post('/',              [VisitorController::class, 'store']);
                 Route::get('/on-site',        [VisitorController::class, 'onSite']);
@@ -271,7 +292,7 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Prestataires ──────────────────────────────────────────────────
-            Route::prefix('contractors')->group(function () {
+            Route::middleware('role:company_admin,hsse_manager')->prefix('contractors')->group(function () {
                 Route::get('/',        [ContractorController::class, 'index']);
                 Route::post('/',       [ContractorController::class, 'store']);
                 Route::get('/{id}',    [ContractorController::class, 'show']);
@@ -285,7 +306,7 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Équipements ───────────────────────────────────────────────────
-            Route::prefix('equipment')->group(function () {
+            Route::middleware('role:company_admin,hsse_manager')->prefix('equipment')->group(function () {
                 Route::get('/',              [EquipmentController::class, 'index']);
                 Route::post('/',             [EquipmentController::class, 'store']);
                 Route::get('/{id}',          [EquipmentController::class, 'show']);
@@ -295,7 +316,7 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Permis de travail ─────────────────────────────────────────────
-            Route::prefix('permits')->group(function () {
+            Route::middleware('role:company_admin,hsse_manager')->prefix('permits')->group(function () {
                 Route::get('/',              [PermitToWorkController::class, 'index']);
                 Route::post('/',             [PermitToWorkController::class, 'store']);
                 Route::get('/stats',         [PermitToWorkController::class, 'stats']);
@@ -307,10 +328,31 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Audit Log ─────────────────────────────────────────────────────
-            Route::prefix('audit')->group(function () {
+            Route::middleware('role:company_admin,hsse_manager')->prefix('audit')->group(function () {
                 Route::get('/',     [AuditLogController::class, 'index']);
                 Route::get('/{id}', [AuditLogController::class, 'show']);
             });
         });
     });
+
+    // ── Super Admin Operix (plateforme — hors contexte tenant) ────────────────
+    // Réservé à l'équipe Operix (role super_admin). Pas de middleware `tenant` :
+    // ces opérations sont cross-tenant et passent par un bypass explicite et audité
+    // dans les contrôleurs (voir SuperAdmin\*Controller).
+    Route::prefix('superadmin')
+        ->middleware(['auth:sanctum', 'superadmin'])
+        ->group(function () {
+            Route::get('/dashboard', [\App\Http\Controllers\SuperAdmin\DashboardController::class, 'index']);
+
+            Route::prefix('tenants')->group(function () {
+                Route::get('/',                 [\App\Http\Controllers\SuperAdmin\TenantController::class, 'index']);
+                Route::post('/',                [\App\Http\Controllers\SuperAdmin\TenantController::class, 'store']);
+                Route::get('/{id}',             [\App\Http\Controllers\SuperAdmin\TenantController::class, 'show']);
+                Route::put('/{id}',             [\App\Http\Controllers\SuperAdmin\TenantController::class, 'update']);
+                Route::delete('/{id}',          [\App\Http\Controllers\SuperAdmin\TenantController::class, 'destroy']);
+                Route::post('/{id}/suspend',    [\App\Http\Controllers\SuperAdmin\TenantController::class, 'suspend']);
+                Route::post('/{id}/activate',   [\App\Http\Controllers\SuperAdmin\TenantController::class, 'activate']);
+                Route::post('/{id}/impersonate',[\App\Http\Controllers\SuperAdmin\TenantController::class, 'impersonate']);
+            });
+        });
 });

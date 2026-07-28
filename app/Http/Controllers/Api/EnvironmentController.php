@@ -7,13 +7,13 @@ use App\Http\Requests\Environment\StoreEnvironmentRequest;
 use App\Http\Requests\Environment\UpdateEnvironmentRequest;
 use App\Http\Resources\EnvironmentResource;
 use App\Models\EnvironmentReport;
-use App\Traits\HasTenantScope;
+use App\Traits\HandlesApiResources;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class EnvironmentController extends Controller
 {
-    use HasTenantScope;
+    use HandlesApiResources;
 
     public function index(Request $request): JsonResponse
     {
@@ -46,7 +46,7 @@ class EnvironmentController extends Controller
         $data['reference']   = $this->generateReference('ENV', EnvironmentReport::class);
 
         if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('operix/environment', 'public');
+            $data['image'] = app(\App\Services\TenantFileService::class)->store($request->file('image'), 'environment');
         }
 
         $report = EnvironmentReport::create($data);

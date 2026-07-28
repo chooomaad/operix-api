@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Equipment;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreEquipmentRequest extends FormRequest
 {
@@ -11,7 +12,7 @@ class StoreEquipmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'code'                      => ['nullable', 'string', 'max:255', 'unique:equipment,code'],
+            'code'                      => ['nullable', 'string', 'max:255', Rule::unique('equipment', 'code')->where('tenant_id', $this->user()->tenant_id)],
             'name'                      => ['required', 'string', 'max:255'],
             'category'                  => ['required', 'in:vehicle,crane,forklift,electrical,pressure,fire,ppe,tool,other'],
             'brand'                     => ['nullable', 'string', 'max:255'],

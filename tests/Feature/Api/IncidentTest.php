@@ -17,7 +17,7 @@ class IncidentTest extends TestCase
         $tenant = Tenant::factory()->create(['status' => 'active']);
         $admin  = User::factory()->create([
             'tenant_id' => $tenant->id,
-            'role'      => 'admin',
+            'role'      => 'company_admin',
             'is_active' => true,
         ]);
         return [$tenant, $admin];
@@ -110,7 +110,13 @@ class IncidentTest extends TestCase
         $this->getJson('/api/v1/incidents')->assertStatus(401);
     }
 
-    public function test_agent_cannot_create_incident(): void
+    /**
+     * Règle métier (prompt maître §11) : un agent terrain PEUT signaler un incident,
+     * mais la gestion du cycle de vie (suppression / clôture) reste réservée aux
+     * responsables. Remplace l'ancien test_agent_cannot_create_incident, dont la règle
+     * (agent bloqué à la création) est devenue obsolète avec l'ouverture au signalement mobile.
+     */
+    public function test_agent_can_report_incident_but_not_delete(): void
     {
         $tenant = Tenant::factory()->create(['status' => 'active']);
         $agent  = User::factory()->create([
@@ -119,7 +125,8 @@ class IncidentTest extends TestCase
             'is_active' => true,
         ]);
 
-        $this->actingAs($agent)
+        // Signalement autorisé pour un agent.
+        $response = $this->actingAs($agent)
             ->postJson('/api/v1/incidents', [
                 'date'        => '2026-06-30',
                 'location'    => 'Zone A',
@@ -127,6 +134,13 @@ class IncidentTest extends TestCase
                 'severity'    => 'low',
                 'description' => 'Test',
             ])
+            ->assertStatus(201);
+
+        $incidentId = $response->json('id');
+
+        // Suppression interdite pour un agent (réservée aux responsables).
+        $this->actingAs($agent)
+            ->deleteJson("/api/v1/incidents/{$incidentId}")
             ->assertStatus(403);
     }
 }

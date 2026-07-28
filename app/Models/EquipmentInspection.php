@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 
 class EquipmentInspection extends Model
 {
+    use BelongsToTenant;
+
     protected $fillable = [
         'equipment_id', 'date', 'type', 'result',
         'observations', 'actions_required', 'next_inspection',

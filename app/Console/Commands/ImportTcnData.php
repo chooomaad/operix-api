@@ -83,7 +83,7 @@ class ImportTcnData extends Command
                     'name'      => trim(($row['prenom'] ?? '') . ' ' . ($row['nom'] ?? $matricule)) ?: $matricule,
                     'email'     => $emailFinal,
                     'password'  => $row['pin'] ?? Hash::make('0000'),
-                    'role'      => $row['role'] === 'admin' ? 'admin' : 'agent',
+                    'role'      => $row['role'] === 'admin' ? 'company_admin' : 'agent',
                     'matricule' => $matricule,
                     'is_active' => true,
                 ]);
