@@ -81,8 +81,14 @@ class PaymentWebhookController extends Controller
         // 8. Provisioning transactionnel et idempotent.
         $result = $provisioning->provisionFromOrder($order->fresh());
 
-        // 9. Email d'activation (dispatch en queue) — branché avec les emails transactionnels.
-        //    $result->activationToken est disponible ici lorsque $result->created est vrai.
+        // 9. Emails transactionnels (en queue) — uniquement au 1er provisioning.
+        if ($result->created) {
+            $notifier = app(\App\Services\CommercialNotifier::class);
+            $notifier->paymentReceived($order);
+            if ($result->activationToken) {
+                $notifier->activation($result->admin, $result->activationToken);
+            }
+        }
 
         return response()->json(['message' => 'ok', 'tenant' => $result->tenant->slug], 200);
     }

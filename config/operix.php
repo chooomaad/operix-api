@@ -33,6 +33,9 @@ return [
     | en base (valeur PLACEHOLDER — à mettre à jour avec le taux réel).
     |
     */
+    // URL de l'application cliente (liens d'activation dans les emails).
+    'app_url' => env('OPERIX_APP_URL', 'https://app.operix-app.com'),
+
     'commercial_currency' => env('OPERIX_COMMERCIAL_CURRENCY', 'EUR'),
     'display_currency'    => env('OPERIX_DISPLAY_CURRENCY', 'MRU'),
     'default_display_rate' => (float) env('OPERIX_DEFAULT_DISPLAY_RATE', 43.0),

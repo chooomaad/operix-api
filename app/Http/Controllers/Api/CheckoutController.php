@@ -51,6 +51,8 @@ class CheckoutController extends Controller
             'status'        => 'pending',
         ]);
 
+        app(\App\Services\CommercialNotifier::class)->orderConfirmation($order);
+
         return response()->json([
             'reference'     => $order->reference,
             'status'        => $order->status,

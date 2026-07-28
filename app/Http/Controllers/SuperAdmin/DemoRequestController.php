@@ -78,6 +78,10 @@ class DemoRequestController extends Controller
 
         $demo->update(['handled_by' => $request->user()->id]);
 
+        if ($result->created && $result->activationToken) {
+            app(\App\Services\CommercialNotifier::class)->activation($result->admin, $result->activationToken);
+        }
+
         return response()->json([
             'tenant'          => $result->tenant->only('id', 'name', 'slug', 'status', 'demo_expires_at'),
             'admin'           => $result->admin->only('id', 'name', 'email'),
