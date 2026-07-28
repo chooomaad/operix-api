@@ -44,7 +44,7 @@ class UserController extends Controller
         $validated = $request->validate([
             'name'      => 'required|string|max:255',
             'email'     => ['required', 'email', 'unique:users,email'],
-            'role'      => ['required', Rule::in(['admin', 'agent'])],
+            'role'      => ['required', Rule::in(['company_admin', 'hsse_manager', 'supervisor', 'agent'])],
             'matricule' => ['nullable', 'string', 'unique:users,matricule'],
             'phone'     => 'nullable|string|max:20',
             'password'  => 'required|string|min:4|max:50',
@@ -81,7 +81,7 @@ class UserController extends Controller
         $validated = $request->validate([
             'name'      => 'sometimes|string|max:255',
             'email'     => ['sometimes', 'email', Rule::unique('users')->ignore($id)],
-            'role'      => ['sometimes', Rule::in(['admin', 'agent'])],
+            'role'      => ['sometimes', Rule::in(['company_admin', 'hsse_manager', 'supervisor', 'agent'])],
             'matricule' => ['nullable', 'string', Rule::unique('users')->ignore($id)],
             'phone'     => 'nullable|string|max:20',
             'password'  => 'sometimes|nullable|string|min:4|max:50',

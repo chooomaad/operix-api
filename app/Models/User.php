@@ -5,12 +5,26 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, HasRoles;
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $user): void {
+            $user->role ??= 'agent';
+        });
+
+        static::saved(function (self $user): void {
+            if ($user->role && Schema::hasTable('roles')) {
+                $user->syncRoles([$user->role]);
+            }
+        });
+    }
 
     protected $fillable = [
         'tenant_id',
@@ -32,7 +46,33 @@ class User extends Authenticatable
 
     public function isAdmin(): bool
     {
-        return in_array($this->role, ['admin', 'super_admin']);
+        return in_array($this->role, ['company_admin', 'hsse_manager', 'super_admin'], true);
+    }
+
+    public function isCompanyAdmin(): bool
+    {
+        return $this->role === 'company_admin';
+    }
+
+    public function isHsseManager(): bool
+    {
+        return $this->role === 'hsse_manager';
+    }
+
+    public function isSupervisor(): bool
+    {
+        return $this->role === 'supervisor';
+    }
+
+    public function hasApplicationRole(string ...$roles): bool
+    {
+        foreach ($roles as $role) {
+            if ($this->role === $role || $this->hasRole($role)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function isSuperAdmin(): bool

@@ -11,8 +11,7 @@ class RequireRole
     {
         $user = $request->user();
 
-        // super_admin bypasses all role checks
-        if (!$user || ($user->role !== 'super_admin' && !in_array($user->role, $roles))) {
+        if (!$user || !$user->hasApplicationRole(...$roles)) {
             return response()->json(['message' => 'Accès refusé. Rôle insuffisant.'], 403);
         }
 

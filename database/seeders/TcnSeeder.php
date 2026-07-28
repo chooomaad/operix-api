@@ -36,7 +36,7 @@ class TcnSeeder extends Seeder
                 'name'      => 'Administrateur TCN',
                 'email'     => 'admin@tcn.mr',
                 'password'  => Hash::make('Operix2026'),
-                'role'      => 'admin',
+                'role'      => 'company_admin',
                 'is_active' => true,
                 'tenant_id' => $tenant->id,
             ]

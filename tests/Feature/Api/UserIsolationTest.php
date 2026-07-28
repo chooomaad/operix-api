@@ -15,7 +15,7 @@ class UserIsolationTest extends TestCase
     {
         return User::factory()->create([
             'tenant_id' => $tenant->id,
-            'role'      => 'admin',
+            'role'      => 'company_admin',
             'is_active' => true,
         ]);
     }

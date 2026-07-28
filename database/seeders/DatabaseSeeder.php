@@ -33,7 +33,7 @@ class DatabaseSeeder extends Seeder
             [
                 'name'       => 'Administrateur TCN',
                 'tenant_id'  => $tenant->id,
-                'role'       => 'admin',
+                'role'       => 'company_admin',
                 'matricule'  => 'TCN-ADM-001',
                 'password'   => Hash::make('Admin@TCN2024'),
                 'is_active'  => true,

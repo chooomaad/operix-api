@@ -71,7 +71,7 @@ class TenantController extends Controller
             'name'      => $validated['admin_name'],
             'email'     => $validated['admin_email'],
             'tenant_id' => $tenant->id,
-            'role'      => 'admin',
+            'role'      => 'company_admin',
             'is_active' => true,
         ]);
 
@@ -142,7 +142,7 @@ class TenantController extends Controller
     {
         $tenant = Tenant::findOrFail($id);
         $admin  = User::where('tenant_id', $tenant->id)
-            ->where('role', 'admin')
+            ->where('role', 'company_admin')
             ->firstOrFail();
 
         $token = $admin->createToken(
