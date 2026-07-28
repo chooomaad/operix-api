@@ -73,6 +73,10 @@ Route::prefix('v1')->group(function () {
     Route::post('/demo-requests', [\App\Http\Controllers\Api\DemoRequestController::class, 'store'])
         ->middleware('throttle:5,1');
 
+    // ── Checkout (public) : crée une commande, montant calculé serveur ────────
+    Route::post('/checkout', [\App\Http\Controllers\Api\CheckoutController::class, 'store'])
+        ->middleware('throttle:10,1');
+
     // ── Auth (public) ─────────────────────────────────────────────────────────
     Route::prefix('auth')->group(function () {
         Route::post('/request-otp', [AuthController::class, 'requestOtp']);
