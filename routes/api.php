@@ -69,6 +69,10 @@ Route::prefix('v1')->group(function () {
     // ── Plans (public — pricing du site marketing) ────────────────────────────
     Route::get('/plans', [\App\Http\Controllers\Api\PlanController::class, 'index']);
 
+    // ── Demande de démo (public, rate-limité anti-spam) ───────────────────────
+    Route::post('/demo-requests', [\App\Http\Controllers\Api\DemoRequestController::class, 'store'])
+        ->middleware('throttle:5,1');
+
     // ── Auth (public) ─────────────────────────────────────────────────────────
     Route::prefix('auth')->group(function () {
         Route::post('/request-otp', [AuthController::class, 'requestOtp']);
@@ -346,6 +350,11 @@ Route::prefix('v1')->group(function () {
         ->middleware(['auth:sanctum', 'superadmin'])
         ->group(function () {
             Route::get('/dashboard', [\App\Http\Controllers\SuperAdmin\DashboardController::class, 'index']);
+
+            // Demandes de démo
+            Route::get('/demo-requests',            [\App\Http\Controllers\SuperAdmin\DemoRequestController::class, 'index']);
+            Route::get('/demo-requests/{id}',       [\App\Http\Controllers\SuperAdmin\DemoRequestController::class, 'show']);
+            Route::put('/demo-requests/{id}/status',[\App\Http\Controllers\SuperAdmin\DemoRequestController::class, 'updateStatus']);
 
             Route::prefix('tenants')->group(function () {
                 Route::get('/',                 [\App\Http\Controllers\SuperAdmin\TenantController::class, 'index']);
