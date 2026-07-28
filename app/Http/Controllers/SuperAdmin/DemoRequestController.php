@@ -4,6 +4,8 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\DemoRequest;
+use App\Models\Plan;
+use App\Services\ProvisioningService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -54,5 +56,32 @@ class DemoRequestController extends Controller
         ]);
 
         return response()->json($demo);
+    }
+
+    /**
+     * Convertit une demande de démo en environnement TRIAL.
+     * Réutilise le ProvisioningService (aucune duplication avec le parcours payant),
+     * idempotent : une demande déjà convertie ne recrée jamais de tenant.
+     */
+    public function convert(Request $request, int $id, ProvisioningService $provisioning): JsonResponse
+    {
+        $validated = $request->validate([
+            'plan_slug'  => ['required', 'string', 'exists:plans,slug'],
+            'trial_days' => ['nullable', 'integer', 'min:1', 'max:90'],
+        ]);
+
+        $demo = DemoRequest::findOrFail($id);
+        abort_if($demo->tenant_id !== null || $demo->status === 'converted', 422, 'Cette demande a déjà été convertie.');
+
+        $plan   = Plan::where('slug', $validated['plan_slug'])->firstOrFail();
+        $result = $provisioning->provisionTrialFromDemo($demo, $plan, $validated['trial_days'] ?? 14);
+
+        $demo->update(['handled_by' => $request->user()->id]);
+
+        return response()->json([
+            'tenant'          => $result->tenant->only('id', 'name', 'slug', 'status', 'demo_expires_at'),
+            'admin'           => $result->admin->only('id', 'name', 'email'),
+            'demo_request_id' => $demo->id,
+        ], 201);
     }
 }

@@ -366,7 +366,8 @@ Route::prefix('v1')->group(function () {
             // Demandes de démo
             Route::get('/demo-requests',            [\App\Http\Controllers\SuperAdmin\DemoRequestController::class, 'index']);
             Route::get('/demo-requests/{id}',       [\App\Http\Controllers\SuperAdmin\DemoRequestController::class, 'show']);
-            Route::put('/demo-requests/{id}/status',[\App\Http\Controllers\SuperAdmin\DemoRequestController::class, 'updateStatus']);
+            Route::put('/demo-requests/{id}/status', [\App\Http\Controllers\SuperAdmin\DemoRequestController::class, 'updateStatus']);
+            Route::post('/demo-requests/{id}/convert',[\App\Http\Controllers\SuperAdmin\DemoRequestController::class, 'convert']);
 
             Route::prefix('tenants')->group(function () {
                 Route::get('/',                 [\App\Http\Controllers\SuperAdmin\TenantController::class, 'index']);
