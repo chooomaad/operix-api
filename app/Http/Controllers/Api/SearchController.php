@@ -65,6 +65,18 @@ class SearchController extends Controller
             ->limit(self::LIMIT)
             ->get(['id','contractor_id','nom','prenom','poste','phone','photo','badge_number','cin','is_active']);
 
+        // La recherche renverrait sinon les donnees personnelles (piece d'identite,
+        // telephone, e-mail) a tous les roles, contournant le filtrage applique par
+        // EmployeeResource. Les champs restent RECHERCHABLES — on peut retrouver une
+        // personne par son numero — mais ils ne sont pas RESTITUES sans le droit
+        // correspondant. Voir docs/MOBILE_API_READINESS.md §B8.
+        if (! ($request->user()?->can('employees.pii.view') ?? false)) {
+            $employees      = $employees->map(fn ($e) => $e->makeHidden(['nni', 'phone', 'email']));
+            $visitors       = $visitors->map(fn ($v) => $v->makeHidden(['phone']));
+            $contractors    = $contractors->map(fn ($c) => $c->makeHidden(['contact_phone']));
+            $contractorEmps = $contractorEmps->map(fn ($c) => $c->makeHidden(['cin', 'phone']));
+        }
+
         return response()->json([
             'employees'            => $employees,
             'visitors'             => $visitors,
