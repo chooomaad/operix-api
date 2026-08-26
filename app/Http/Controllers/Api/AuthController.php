@@ -157,7 +157,15 @@ class AuthController extends Controller
             'pin'       => ['required', 'string', 'min:4', 'max:50', 'confirmed'],
         ]);
 
+        $tenant = Tenant::where('slug', 'tcn')->first();
+        if (! $tenant) {
+            return response()->json([
+                'message' => 'Les inscriptions sont temporairement indisponibles.',
+            ], 503);
+        }
+
         User::create([
+            'tenant_id' => $tenant->id,
             'name'      => trim($request->prenom . ' ' . $request->nom),
             'email'     => strtolower($request->email),
             'matricule' => strtoupper($request->matricule),

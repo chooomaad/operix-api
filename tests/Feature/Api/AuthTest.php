@@ -36,6 +36,29 @@ class AuthTest extends TestCase
             ->assertStatus(404);
     }
 
+    public function test_registration_assigns_the_public_tcn_tenant(): void
+    {
+        $tenant = Tenant::factory()->create(['slug' => 'tcn']);
+
+        $this->postJson('/api/v1/auth/register', [
+            'prenom'           => 'Choumad',
+            'nom'              => 'Elemine',
+            'matricule'        => 'TCN-REQ-001',
+            'email'            => 'choumad.registration@example.com',
+            'pin'              => '123456',
+            'pin_confirmation' => '123456',
+        ])
+            ->assertStatus(201)
+            ->assertJsonPath('message', fn ($message) => str_contains($message, 'Demande'));
+
+        $this->assertDatabaseHas('users', [
+            'email'    => 'choumad.registration@example.com',
+            'tenant_id' => $tenant->id,
+            'role'     => 'agent',
+            'is_active' => false,
+        ]);
+    }
+
     public function test_request_otp_for_known_user(): void
     {
         [, $admin] = $this->createTenantWithAdmin();
