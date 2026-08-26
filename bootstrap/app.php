@@ -21,7 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant.scope' => \App\Http\Middleware\TenantScope::class,   // vestige (no-op) conservé
             'tenant'       => \App\Http\Middleware\ResolveTenant::class,
             'tenant.context' => \App\Http\Middleware\EnsureTenantContext::class,
-            'role'         => \App\Http\Middleware\RequireRole::class,
+            'permission'   => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'superadmin'   => \App\Http\Middleware\SuperAdmin::class,
         ]);
     })
@@ -29,4 +29,21 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*'),
         );
+
+        // Spatie renvoie un message anglais et expose la permission manquante.
+        // On uniformise sur le message des autres refus de l'API et on ne divulgue
+        // pas le nom de la permission attendue.
+        $exceptions->render(function (
+            \Spatie\Permission\Exceptions\UnauthorizedException $e,
+            Request $request
+        ) {
+            if ($request->is('api/*')) {
+                return response()->json(
+                    ['message' => 'Accès refusé. Permission insuffisante.'],
+                    403
+                );
+            }
+
+            return null;
+        });
     })->create();

@@ -94,6 +94,8 @@ class AuthController extends Controller
         return response()->json([
             'token'        => $token,
             'user'         => $this->formatUser($user),
+            'tenant'       => $this->tenantInfo($user),
+            'abilities'    => $this->abilitiesFor($user),
             'organisation' => $this->orgInfo($user),
         ]);
     }
@@ -125,6 +127,8 @@ class AuthController extends Controller
         return response()->json([
             'token'        => $token,
             'user'         => $this->formatUser($user),
+            'tenant'       => $this->tenantInfo($user),
+            'abilities'    => $this->abilitiesFor($user),
             'organisation' => $this->orgInfo($user),
         ]);
     }
@@ -135,6 +139,8 @@ class AuthController extends Controller
 
         return response()->json([
             'user'         => $this->formatUser($user),
+            'tenant'       => $this->tenantInfo($user),
+            'abilities'    => $this->abilitiesFor($user),
             'organisation' => $this->orgInfo($user),
         ]);
     }
@@ -305,6 +311,56 @@ class AuthController extends Controller
             'is_active'    => $u->is_active,
             'last_login_at'=> $u->last_login_at?->toIso8601String(),
         ];
+    }
+
+    /**
+     * Identité du tenant destinée aux clients.
+     *
+     * Distinct de orgInfo() (branding pur) : porte l'`id`, dont un client a besoin
+     * pour cloisonner ses caches locaux entre deux comptes de tenants différents sur
+     * le même appareil.
+     */
+    private function tenantInfo(?User $user): ?array
+    {
+        $tenant = $user?->tenant;
+
+        if (! $tenant) {
+            return null;
+        }
+
+        return [
+            'id'            => $tenant->id,
+            'name'          => $tenant->name,
+            'short_name'    => $tenant->short_name,
+            'logo_url'      => app(\App\Services\TenantFileService::class)->url($tenant->logo),
+            'primary_color' => $tenant->primary_color,
+            'locale'        => $tenant->locale,
+            'country'       => $tenant->country,
+            'timezone'      => $tenant->timezone,
+        ];
+    }
+
+    /**
+     * Permissions effectives de l'utilisateur.
+     *
+     * Le client (web ou mobile) s'en sert UNIQUEMENT pour masquer, désactiver ou
+     * rediriger : le backend reste seul juge, chaque route porte sa propre permission.
+     * Sans cette liste, un client devrait redéclarer la table des rôles du serveur et
+     * finirait par s'en désynchroniser.
+     *
+     * @return list<string>
+     */
+    private function abilitiesFor(?User $user): array
+    {
+        if (! $user) {
+            return [];
+        }
+
+        return $user->getAllPermissions()
+            ->pluck('name')
+            ->sort()
+            ->values()
+            ->all();
     }
 
     private function orgInfo(?User $user = null): array
