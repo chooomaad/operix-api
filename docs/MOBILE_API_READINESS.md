@@ -415,3 +415,61 @@ Push FCM (B6) · expiration des jetons (B7) · inspections avec checklists (§24
 Toutes les vérifications automatisées de l'existant passent : **78 tests backend / 252 assertions PASS**, build front vert. Les bloquants ci-dessus sont des **manques de couverture fonctionnelle et des incohérences de contrat**, pas des régressions — à l'exception de **B3, qui est un vrai bug latent en production**, reproduit et documenté ci-dessus.
 
 **Prochaine étape : arbitrage des trois questions ouvertes du §6, puis Phase 1 (fondation Flutter) sur `phase-4-mobile-hse`.**
+
+---
+
+## 9. Suite donnée à l'audit — Phase 1a (préparation backend)
+
+Branche `phase-4-mobile-hse`, 5 commits atomiques. **98 tests / 359 assertions PASS** (contre 78/252 à l'audit), build front vert.
+
+| Réf | Statut | Commit |
+|---|---|---|
+| B3 — vocabulaire `type` incohérent | ✅ **corrigé** | `fix(incidents)` |
+| B1 — session unique au login | ✅ **corrigé** | `feat(auth)` |
+| B5 — aucune permission | ✅ **corrigé** | `feat(rbac)` |
+| B2 — terrain exclu du signalement | ✅ **corrigé** (absorbé par B5) | `feat(rbac)` |
+| B8 — PII employés exposées | ✅ **corrigé** | `fix(privacy)` |
+| B9 — pas de second tenant | ✅ **corrigé** | `feat(seed)` |
+| B4 — `tcn` en dur | ⚠️ contourné côté mobile, backend inchangé |
+| B6 — push FCM | ❌ reporté hors MVP, assumé |
+| B7 — jetons sans expiration | ❌ reporté, décision séparée (impacte le web en prod) |
+
+### Découvertes faites pendant la correction
+
+Trois faits sont apparus en corrigeant, qui n'étaient pas visibles à l'audit :
+
+1. **B3 était plus grave qu'annoncé.** Le formulaire web proposait bel et bien `FIRE` et `FIRST_AID` : le bug n'était pas latent, **deux des six types d'incident étaient inutilisables en production**.
+2. **Un quatrième vocabulaire existait.** `ImportController::normalizeIncidentType()` produisait `FAT`, `MTI`, `FA`, `PP`, `autre` — **aucune de ces valeurs n'est acceptée par la base**. L'import Excel d'incidents n'a donc jamais pu fonctionner. Corrigé au passage.
+3. **B8 était contournable.** Filtrer `EmployeeResource` ne suffisait pas : `GET /search` restituait `nni`, `phone` et `email` sans passer par la resource. Les deux chemins sont désormais filtrés.
+
+### Lacune ouverte, non traitée
+
+Le vocabulaire des types d'incident **ne comporte aucun type « fatalité »**. Les anciens mappings d'import produisaient `FAT`, sans équivalent en base. `normalizeType()` fait délibérément retomber ces codes sur `Autre` plutôt que de les rapprocher du type voisin : classer une fatalité en accident avec arrêt fausserait les indicateurs réglementaires. **À arbitrer** (ajout d'un type + migration de la contrainte CHECK).
+
+### Contrat d'API désormais disponible pour le mobile
+
+`POST /auth/login` et `GET /auth/me` renvoient :
+
+```jsonc
+{
+  "user":      { "id": 42, "name": "...", "role": "agent", "matricule": "..." },
+  "tenant":    { "id": 1, "name": "TCN", "logo_url": "...", "primary_color": "#0f2847",
+                 "locale": "fr", "country": "MR", "timezone": "Africa/Nouakchott" },
+  "abilities": ["dashboard.view", "incidents.create", "near_miss.create", ...],
+  "organisation": { /* conservé pour compatibilité du front web */ }
+}
+```
+
+`POST /auth/login` accepte `platform: "mobile"`. Le mobile masque et désactive selon `abilities`, sans jamais s'y fier pour la sécurité.
+
+### Ce qu'un agent de terrain peut faire, après correction
+
+| Action | Avant | Après |
+|---|---|---|
+| Signaler un incident | ✅ | ✅ |
+| Signaler un presqu'accident | ❌ 403 | ✅ |
+| Signaler une observation environnementale | ❌ 403 | ✅ |
+| Consulter les listes correspondantes | ❌ 403 | ✅ |
+| Modifier / clôturer / supprimer | ❌ | ❌ (inchangé, volontaire) |
+
+Le MVP mobile dispose donc des **trois** actions terrain prévues par le brief, et non d'une seule.
