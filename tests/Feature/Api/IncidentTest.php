@@ -46,6 +46,76 @@ class IncidentTest extends TestCase
         ]);
     }
 
+    /**
+     * Non-regression B3 : la validation HTTP et la contrainte CHECK PostgreSQL
+     * declaraient deux vocabulaires differents pour `type`. `FIRE` et `FIRST_AID`
+     * passaient la validation puis explosaient a l'insertion (QueryException -> 500).
+     * Chaque type canonique doit desormais etre reellement insérable.
+     */
+    public function test_every_canonical_type_is_accepted(): void
+    {
+        [$tenant, $admin] = $this->createTenantAdmin();
+
+        foreach (SafetyIncident::TYPES as $type) {
+            $this->actingAs($admin)
+                ->postJson('/api/v1/incidents', [
+                    'date'        => '2026-06-30',
+                    'location'    => 'Zone A',
+                    'type'        => $type,
+                    'severity'    => 'low',
+                    'description' => 'Verification du vocabulaire canonique',
+                ])
+                ->assertStatus(201, "Le type canonique {$type} a ete refuse.")
+                ->assertJsonPath('type', $type);
+
+            $this->assertDatabaseHas('safety_incidents', [
+                'tenant_id' => $tenant->id,
+                'type'      => $type,
+            ]);
+        }
+    }
+
+    /**
+     * Un type hors vocabulaire doit etre rejete proprement par la validation (422),
+     * jamais atteindre la base et produire une 500.
+     */
+    public function test_unknown_type_is_rejected_with_422(): void
+    {
+        [, $admin] = $this->createTenantAdmin();
+
+        $this->actingAs($admin)
+            ->postJson('/api/v1/incidents', [
+                'date'        => '2026-06-30',
+                'location'    => 'Zone A',
+                'type'        => 'NOT_A_TYPE',
+                'severity'    => 'low',
+                'description' => 'Type inconnu',
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['type']);
+    }
+
+    /**
+     * L'import Excel normalisait vers 'FAT','MTI','FA','PP','autre' : aucune de ces
+     * valeurs n'etait acceptee par la base, donc tout import echouait. Les alias surs
+     * doivent converger vers le vocabulaire canonique, et l'inconnu retomber sur 'Autre'
+     * plutot que d'etre rapproche d'un type voisin (falsification des indicateurs HSE).
+     */
+    public function test_type_normalization_maps_aliases_and_defaults_to_autre(): void
+    {
+        $this->assertSame('FAC', SafetyIncident::normalizeType('FIRST_AID'));
+        $this->assertSame('FAC', SafetyIncident::normalizeType('FA'));
+        $this->assertSame('Fire', SafetyIncident::normalizeType('FIRE'));
+        $this->assertSame('MTC', SafetyIncident::normalizeType('MTI'));
+        $this->assertSame('LTI', SafetyIncident::normalizeType('LTI'));
+        $this->assertSame('Autre', SafetyIncident::normalizeType('autre'));
+
+        // Codes sans equivalent semantique : jamais rapproches d'un autre type.
+        $this->assertSame('Autre', SafetyIncident::normalizeType('FAT'));
+        $this->assertSame('Autre', SafetyIncident::normalizeType('PP'));
+        $this->assertSame('Autre', SafetyIncident::normalizeType(''));
+    }
+
     public function test_incident_reference_is_tenant_scoped(): void
     {
         [$tenantA, $adminA] = $this->createTenantAdmin();

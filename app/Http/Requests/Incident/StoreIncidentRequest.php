@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Incident;
 
+use App\Models\SafetyIncident;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreIncidentRequest extends FormRequest
 {
@@ -14,7 +16,7 @@ class StoreIncidentRequest extends FormRequest
             'date'                  => ['required', 'date'],
             'time'                  => ['nullable', 'string'],
             'location'              => ['required', 'string', 'max:255'],
-            'type'                  => ['required', 'in:LTI,FIRE,MTC,RWC,FIRST_AID,HPI'],
+            'type'                  => ['required', Rule::in(SafetyIncident::TYPES)],
             'severity'              => ['required', 'in:low,medium,high,critical'],
             'description'           => ['required', 'string'],
             'immediate_cause'       => ['nullable', 'string'],

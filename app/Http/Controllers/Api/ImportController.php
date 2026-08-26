@@ -257,8 +257,10 @@ class ImportController extends Controller
 
     private function normalizeIncidentType(string $v): string
     {
-        $map = ['LTI'=>'LTI','FAT'=>'FAT','MTI'=>'MTI','FA'=>'FA','PP'=>'PP'];
-        return $map[strtoupper($v)] ?? 'autre';
+        // Délègue au vocabulaire canonique du modèle. L'ancienne table locale
+        // ('FAT','MTI','FA','PP','autre') ne produisait QUE des valeurs refusées par
+        // la contrainte CHECK : tout import d'incidents échouait en 500.
+        return SafetyIncident::normalizeType($v);
     }
 
     private function normalizeSeverity(string $v): string

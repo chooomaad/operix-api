@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Incident;
 
+use App\Models\SafetyIncident;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateIncidentRequest extends FormRequest
 {
@@ -14,7 +16,7 @@ class UpdateIncidentRequest extends FormRequest
             'date'                  => ['sometimes', 'date'],
             'time'                  => ['nullable', 'string'],
             'location'              => ['sometimes', 'string', 'max:255'],
-            'type'                  => ['sometimes', 'in:LTI,FIRE,MTC,RWC,FIRST_AID,HPI'],
+            'type'                  => ['sometimes', Rule::in(SafetyIncident::TYPES)],
             'severity'              => ['sometimes', 'in:low,medium,high,critical'],
             'description'           => ['sometimes', 'string'],
             'immediate_cause'       => ['nullable', 'string'],
