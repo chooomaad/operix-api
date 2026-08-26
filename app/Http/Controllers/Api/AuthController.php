@@ -88,8 +88,7 @@ class AuthController extends Controller
             return $failure;
         }
 
-        $user->tokens()->delete();
-        $token = $user->createToken('operix-api')->plainTextToken;
+        $token = $this->issuePlatformToken($user, $request);
         $user->update(['last_login_at' => now()]);
 
         return response()->json([
@@ -120,8 +119,7 @@ class AuthController extends Controller
             return $failure;
         }
 
-        $user->tokens()->delete();
-        $token = $user->createToken('tcn-frontend')->plainTextToken;
+        $token = $this->issuePlatformToken($user, $request);
         $user->update(['last_login_at' => now()]);
 
         return response()->json([
@@ -252,6 +250,46 @@ class AuthController extends Controller
         $user->tokens()->delete();
 
         return response()->json(['message' => 'PIN réinitialisé avec succès. Vous pouvez vous connecter.']);
+    }
+
+    /**
+     * Plateformes clientes autorisées à ouvrir une session.
+     *
+     * Liste blanche stricte : le nom du jeton provient du client, il ne doit jamais
+     * être une chaîne libre (sinon un appelant pourrait forger un nom arbitraire et
+     * échapper à la révocation ciblée, ou usurper le nom d'une autre plateforme).
+     */
+    private const PLATFORMS = ['web', 'mobile'];
+
+    /**
+     * Émet un jeton d'accès rattaché à UNE plateforme.
+     *
+     * Auparavant, chaque connexion exécutait `$user->tokens()->delete()` : ouvrir la
+     * session mobile déconnectait la session web du même utilisateur, et inversement.
+     * Acceptable pour un client unique, rédhibitoire dès qu'un second client existe —
+     * un responsable HSE passant du bureau au terrain entrait dans une boucle de
+     * reconnexions (voir docs/MOBILE_API_READINESS.md §B1).
+     *
+     * On ne révoque donc que les jetons de la plateforme concernée : une nouvelle
+     * connexion mobile invalide l'ancienne session mobile (comportement attendu :
+     * un téléphone perdu ne garde pas d'accès) sans toucher à la session web.
+     *
+     * Les révocations globales restent volontairement en place là où elles ont un sens
+     * de sécurité : réinitialisation du PIN et suppression de compte.
+     */
+    private function issuePlatformToken(User $user, Request $request): string
+    {
+        $platform = strtolower((string) $request->input('platform', 'web'));
+
+        if (! in_array($platform, self::PLATFORMS, true)) {
+            $platform = 'web';
+        }
+
+        $name = "operix-{$platform}";
+
+        $user->tokens()->where('name', $name)->delete();
+
+        return $user->createToken($name)->plainTextToken;
     }
 
     private function formatUser(User $u): array

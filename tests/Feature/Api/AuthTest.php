@@ -6,6 +6,7 @@ use App\Models\OtpToken;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class AuthTest extends TestCase
@@ -21,6 +22,89 @@ class AuthTest extends TestCase
             'is_active' => true,
         ]);
         return [$tenant, $admin];
+    }
+
+    /**
+     * Non-regression B1 : chaque connexion executait `$user->tokens()->delete()`,
+     * si bien qu'ouvrir la session mobile fermait la session web du meme utilisateur.
+     * Les deux plateformes doivent pouvoir coexister.
+     */
+    public function test_mobile_login_does_not_revoke_the_web_session(): void
+    {
+        [, $admin] = $this->createTenantWithAdmin();
+        $admin->update(['matricule' => 'TCN-SESSION-1', 'password' => Hash::make('1234')]);
+
+        $web = $this->postJson('/api/v1/auth/login', [
+            'matricule' => 'TCN-SESSION-1',
+            'pin'       => '1234',
+            'platform'  => 'web',
+        ])->assertStatus(200)->json('token');
+
+        $mobile = $this->postJson('/api/v1/auth/login', [
+            'matricule' => 'TCN-SESSION-1',
+            'pin'       => '1234',
+            'platform'  => 'mobile',
+        ])->assertStatus(200)->json('token');
+
+        $this->assertNotSame($web, $mobile);
+
+        // Le jeton web doit rester utilisable apres la connexion mobile.
+        $this->withHeader('Authorization', "Bearer {$web}")
+            ->getJson('/api/v1/auth/me')
+            ->assertStatus(200);
+
+        $this->withHeader('Authorization', "Bearer {$mobile}")
+            ->getJson('/api/v1/auth/me')
+            ->assertStatus(200);
+
+        $this->assertSame(
+            ['operix-mobile', 'operix-web'],
+            $admin->tokens()->pluck('name')->sort()->values()->all()
+        );
+    }
+
+    /**
+     * Une nouvelle connexion sur LA MEME plateforme doit invalider la precedente :
+     * un telephone perdu ne conserve pas d'acces.
+     */
+    public function test_second_login_on_same_platform_revokes_the_previous_one(): void
+    {
+        [, $admin] = $this->createTenantWithAdmin();
+        $admin->update(['matricule' => 'TCN-SESSION-1', 'password' => Hash::make('1234')]);
+
+        $first = $this->postJson('/api/v1/auth/login', [
+            'matricule' => 'TCN-SESSION-1',
+            'pin'       => '1234',
+            'platform'  => 'mobile',
+        ])->assertStatus(200)->json('token');
+
+        $this->postJson('/api/v1/auth/login', [
+            'matricule' => 'TCN-SESSION-1',
+            'pin'       => '1234',
+            'platform'  => 'mobile',
+        ])->assertStatus(200);
+
+        $this->withHeader('Authorization', "Bearer {$first}")
+            ->getJson('/api/v1/auth/me')
+            ->assertStatus(401);
+    }
+
+    /**
+     * Le nom du jeton vient du client : toute valeur hors liste blanche doit retomber
+     * sur 'web' plutot que de creer un nom de jeton arbitraire.
+     */
+    public function test_unknown_platform_falls_back_to_web(): void
+    {
+        [, $admin] = $this->createTenantWithAdmin();
+        $admin->update(['matricule' => 'TCN-SESSION-1', 'password' => Hash::make('1234')]);
+
+        $this->postJson('/api/v1/auth/login', [
+            'matricule' => 'TCN-SESSION-1',
+            'pin'       => '1234',
+            'platform'  => 'operix-mobile-forge',
+        ])->assertStatus(200);
+
+        $this->assertSame(['operix-web'], $admin->tokens()->pluck('name')->all());
     }
 
     public function test_request_otp_requires_email(): void
