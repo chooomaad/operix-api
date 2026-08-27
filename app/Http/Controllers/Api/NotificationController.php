@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Events\NotificationSent;
 use App\Models\AppNotification;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -60,29 +61,49 @@ class NotificationController extends Controller
             'sent_by_name' => $sender->name,
         ];
 
+        // Le modèle User ne porte PAS le global scope tenant (les identités
+        // d'authentification sont globales). Le filtrage doit donc être explicite
+        // ici, sinon un envoi collectif touche les utilisateurs de TOUTES les
+        // entreprises — et, une fois la diffusion branchée, leur pousse le message
+        // en temps réel : le canal `user.{id}` n'autorise que sur l'identifiant,
+        // pas sur le tenant.
+        $recipients = User::query()
+            ->where('tenant_id', $sender->tenant_id)
+            ->where('is_active', true);
+
+        if (! empty($validated['user_id'])) {
+            // `exists:users,id` ne suffit pas : il accepte l'identifiant d'un
+            // utilisateur d'une autre entreprise. On restreint au tenant courant.
+            $target = (clone $recipients)->find($validated['user_id']);
+
+            if (! $target) {
+                return response()->json([
+                    'message' => 'Destinataire introuvable.',
+                ], 404);
+            }
+
+            $targets = collect([$target]);
+        } else {
+            $targets = $recipients->get();
+        }
+
         $created = [];
 
-        if (!empty($validated['user_id'])) {
-            $notif = AppNotification::create([
+        foreach ($targets as $recipient) {
+            $notification = AppNotification::create([
                 'id'              => Str::uuid(),
                 'type'            => $type,
                 'notifiable_type' => User::class,
-                'notifiable_id'   => $validated['user_id'],
+                'notifiable_id'   => $recipient->id,
                 'data'            => $data,
             ]);
-            $created[] = $notif;
-        } else {
-            $users = User::where('is_active', true)->get();
-            foreach ($users as $u) {
-                $notif = AppNotification::create([
-                    'id'              => Str::uuid(),
-                    'type'            => $type,
-                    'notifiable_type' => User::class,
-                    'notifiable_id'   => $u->id,
-                    'data'            => $data,
-                ]);
-                $created[] = $notif;
-            }
+
+            $created[] = $notification;
+
+            // Diffusion temps réel vers le canal privé du destinataire. L'évènement
+            // implémente ShouldBroadcast : il part par la file d'attente et ne
+            // ralentit donc pas la réponse HTTP.
+            NotificationSent::dispatch($notification, $recipient->id);
         }
 
         return response()->json([
