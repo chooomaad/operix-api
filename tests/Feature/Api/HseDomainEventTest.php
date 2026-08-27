@@ -314,6 +314,29 @@ class HseDomainEventTest extends TestCase
         $this->assertNull(HseEventPayload::fromModel($incident)->toArray()['location_point']);
     }
 
+    /**
+     * Non-regression : la base applique un statut par defaut, mais le modele en
+     * memoire l'ignorait jusqu'a un rechargement. La reponse 201 de l'API et
+     * l'evenement diffuse annoncaient donc `status: null` alors que la ligne
+     * portait bien « open » — un client aurait affiche un incident sans statut.
+     */
+    public function test_a_freshly_created_event_carries_its_default_status(): void
+    {
+        Event::fake([HseEventCreated::class]);
+
+        $agent = $this->agentOf();
+
+        $this->actingAs($agent)
+            ->postJson('/api/v1/incidents', $this->incidentPayload())
+            ->assertStatus(201)
+            ->assertJsonPath('status', 'open');
+
+        Event::assertDispatched(
+            HseEventCreated::class,
+            fn (HseEventCreated $e) => $e->payload->status === 'open',
+        );
+    }
+
     // ── 7 : la reponse HTTP n'attend pas le WebSocket ─────────────────────────
 
     /**

@@ -79,6 +79,21 @@ class SafetyIncident extends Model implements HseEvent
         return self::TYPE_ALIASES[strtoupper($value)] ?? 'Autre';
     }
 
+    /**
+     * Valeurs par defaut alignees sur celles de PostgreSQL.
+     *
+     * Sans elles, un enregistrement tout juste cree n'a PAS de statut en memoire :
+     * la base applique son defaut, mais le modele l'ignore jusqu'a un rechargement.
+     * Consequence observee — la reponse 201 de l'API renvoyait `status: null`, et
+     * l'evenement temps reel diffusait la meme valeur nulle, alors que la ligne
+     * portait bien « open ».
+     *
+     * Declarer le defaut ici evite un SELECT supplementaire a chaque creation.
+     */
+    protected $attributes = [
+        'status' => 'open',
+    ];
+
     protected $fillable = [
         'reference', 'date', 'time', 'location',
         'type', 'severity', 'description', 'immediate_cause',
