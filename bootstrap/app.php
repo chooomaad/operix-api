@@ -40,8 +40,14 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // `broadcasting/*` est inclus au meme titre que l'API : ce point d'entree
+        // n'est appele que par du JavaScript. Sans cela, une requete non
+        // authentifiee y declenche une redirection vers une route `login`
+        // inexistante, donc une 500 accompagnee d'une page HTML — un client au
+        // jeton expire ne pouvait pas distinguer « session terminee » de
+        // « serveur en panne ».
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*'),
+            fn (Request $request) => $request->is('api/*') || $request->is('broadcasting/*'),
         );
 
         // Spatie renvoie un message anglais et expose la permission manquante.
