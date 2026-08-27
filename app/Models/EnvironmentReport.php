@@ -2,12 +2,24 @@
 
 namespace App\Models;
 
+use App\Contracts\HseEvent;
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class EnvironmentReport extends Model
+class EnvironmentReport extends Model implements HseEvent
 {
+    public function hseKind(): string
+    {
+        return 'environment';
+    }
+
+    /** spill, emission, waste… porte par le champ `type`. */
+    public function hseSubtype(): ?string
+    {
+        return $this->type;
+    }
+
     use BelongsToTenant, SoftDeletes;
 
     protected $fillable = [

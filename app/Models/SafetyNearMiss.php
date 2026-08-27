@@ -2,12 +2,24 @@
 
 namespace App\Models;
 
+use App\Contracts\HseEvent;
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class SafetyNearMiss extends Model
+class SafetyNearMiss extends Model implements HseEvent
 {
+    public function hseKind(): string
+    {
+        return 'near_miss';
+    }
+
+    /** Un presqu'accident n'a pas de sous-type : seule sa gravite le qualifie. */
+    public function hseSubtype(): ?string
+    {
+        return null;
+    }
+
     use BelongsToTenant, SoftDeletes;
 
     protected $table = 'safety_near_miss';

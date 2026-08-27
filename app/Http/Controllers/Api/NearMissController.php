@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\HseEventCreated;
 use App\Http\Controllers\Controller;
+use App\Support\HseEventPayload;
 use App\Http\Requests\NearMiss\StoreNearMissRequest;
 use App\Http\Requests\NearMiss\UpdateNearMissRequest;
 use App\Http\Resources\NearMissResource;
@@ -50,6 +52,11 @@ class NearMissController extends Controller
 
         $nearMiss = SafetyNearMiss::create($data);
         $nearMiss->load('reporter');
+
+        // Diffusion temps reel. L'evenement implemente ShouldBroadcast :
+        // il part par la file d'attente, la reponse HTTP n'attend donc ni le
+        // serveur WebSocket ni les clients connectes.
+        HseEventCreated::dispatch(HseEventPayload::fromModel($nearMiss));
 
         return response()->json(new NearMissResource($nearMiss), 201);
     }

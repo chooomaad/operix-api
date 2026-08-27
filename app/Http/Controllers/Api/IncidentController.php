@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\HseEventCreated;
 use App\Http\Controllers\Controller;
+use App\Support\HseEventPayload;
 use App\Http\Requests\Incident\StoreIncidentRequest;
 use App\Http\Requests\Incident\UpdateIncidentRequest;
 use App\Http\Resources\IncidentResource;
@@ -52,6 +54,11 @@ class IncidentController extends Controller
 
         $incident = SafetyIncident::create($data);
         $incident->load('reporter');
+
+        // Diffusion temps reel. L'evenement implemente ShouldBroadcast :
+        // il part par la file d'attente, la reponse HTTP n'attend donc ni le
+        // serveur WebSocket ni les clients connectes.
+        HseEventCreated::dispatch(HseEventPayload::fromModel($incident));
 
         return response()->json(new IncidentResource($incident), 201);
     }

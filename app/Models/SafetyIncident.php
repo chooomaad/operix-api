@@ -2,13 +2,25 @@
 
 namespace App\Models;
 
+use App\Contracts\HseEvent;
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class SafetyIncident extends Model
+class SafetyIncident extends Model implements HseEvent
 {
+    public function hseKind(): string
+    {
+        return 'incident';
+    }
+
+    /** LTI, Fire, MTC… la qualification portee par le champ `type`. */
+    public function hseSubtype(): ?string
+    {
+        return $this->type;
+    }
+
     use BelongsToTenant, HasFactory, SoftDeletes;
 
     /**

@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\HseEventCreated;
 use App\Http\Controllers\Controller;
+use App\Support\HseEventPayload;
 use App\Http\Requests\Environment\StoreEnvironmentRequest;
 use App\Http\Requests\Environment\UpdateEnvironmentRequest;
 use App\Http\Resources\EnvironmentResource;
@@ -51,6 +53,11 @@ class EnvironmentController extends Controller
 
         $report = EnvironmentReport::create($data);
         $report->load('reporter');
+
+        // Diffusion temps reel. L'evenement implemente ShouldBroadcast :
+        // il part par la file d'attente, la reponse HTTP n'attend donc ni le
+        // serveur WebSocket ni les clients connectes.
+        HseEventCreated::dispatch(HseEventPayload::fromModel($report));
 
         return response()->json(new EnvironmentResource($report), 201);
     }
