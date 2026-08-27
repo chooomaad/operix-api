@@ -3,11 +3,14 @@
 namespace App\Http\Requests\Incident;
 
 use App\Models\SafetyIncident;
+use App\Http\Requests\Concerns\ValidatesGeolocation;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class UpdateIncidentRequest extends FormRequest
 {
+    use ValidatesGeolocation;
+
     public function authorize(): bool { return true; }
 
     public function rules(): array
@@ -26,6 +29,14 @@ class UpdateIncidentRequest extends FormRequest
             'status'                => ['sometimes', 'in:open,in_progress,closed'],
             'employees'             => ['nullable', 'array'],
             'employees.*'           => ['integer'],
-        ];
+        ] + $this->geolocationRules();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return $this->geolocationMessages();
     }
 }

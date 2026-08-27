@@ -32,6 +32,20 @@ class EnvironmentResource extends JsonResource
                 'id'   => $this->reporter->id,
                 'name' => $this->reporter->name,
             ]),
+            // Position renvoyee comme un objet, ou `null` s'il n'y en a pas.
+            // Trois champs plats a `null` obligeraient chaque client a verifier
+            // lat ET lon avant d'afficher quoi que ce soit ; un objet absent est
+            // une reponse sans ambiguite : cet evenement n'est pas situe.
+            'location_point'        => $this->latitude === null ? null : [
+                'latitude'    => $this->latitude,
+                'longitude'   => $this->longitude,
+                // Rayon d'incertitude en metres, tel que rapporte par l'appareil.
+                // Une carte doit distinguer un point fiable d'une approximation.
+                'accuracy'    => $this->location_accuracy,
+                // Instant de la CAPTURE, distinct de created_at : un signalement
+                // rempli hors ligne est enregistre bien apres avoir ete localise.
+                'captured_at' => $this->location_captured_at?->toIso8601String(),
+            ],
             'created_at'            => $this->created_at?->format('Y-m-d H:i'),
             'updated_at'            => $this->updated_at?->format('Y-m-d H:i'),
         ];

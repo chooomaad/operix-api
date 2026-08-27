@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests\NearMiss;
 
+use App\Http\Requests\Concerns\ValidatesGeolocation;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateNearMissRequest extends FormRequest
 {
+    use ValidatesGeolocation;
+
     public function authorize(): bool { return true; }
 
     public function rules(): array
@@ -22,6 +25,14 @@ class UpdateNearMissRequest extends FormRequest
             'status'                => ['sometimes', 'in:open,in_progress,closed'],
             'employees'             => ['nullable', 'array'],
             'employees.*'           => ['integer'],
-        ];
+        ] + $this->geolocationRules();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return $this->geolocationMessages();
     }
 }

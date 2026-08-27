@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests\Environment;
 
+use App\Http\Requests\Concerns\ValidatesGeolocation;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateEnvironmentRequest extends FormRequest
 {
+    use ValidatesGeolocation;
+
     public function authorize(): bool { return true; }
 
     public function rules(): array
@@ -20,6 +23,14 @@ class UpdateEnvironmentRequest extends FormRequest
             'corrective_action'     => ['nullable', 'string'],
             'corrective_action_due' => ['nullable', 'date'],
             'status'                => ['sometimes', 'in:open,in_progress,closed'],
-        ];
+        ] + $this->geolocationRules();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return $this->geolocationMessages();
     }
 }
