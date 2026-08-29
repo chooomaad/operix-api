@@ -14,6 +14,17 @@ return [
 
     'paths' => [
         'api/*',
+        // Signature des abonnements aux canaux prives. Ce point vit a la RACINE
+        // du serveur, hors de `api/*` : il n'etait donc couvert par aucune regle
+        // CORS, et le navigateur bloquait la requete.
+        //
+        // Le symptome etait trompeur : le WebSocket echappe au CORS, donc la
+        // connexion s'etablissait et l'interface affichait « En direct ». Seul
+        // l'abonnement echouait, et AUCUN evenement n'arrivait jamais.
+        //
+        // Le client web du meme depot n'etait pas touche : son proxy Vite le sert
+        // en meme origine. Tout autre client navigateur l'etait.
+        'broadcasting/auth',
         'sanctum/csrf-cookie',
         'docs/api',
         'docs/api.json',
