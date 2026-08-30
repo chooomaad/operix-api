@@ -89,10 +89,13 @@ Route::prefix('v1')->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('/request-otp', [AuthController::class, 'requestOtp']);
         Route::post('/verify-otp',  [AuthController::class, 'verifyOtp']);
-        Route::post('/login',       [AuthController::class, 'loginWithMatricule']);
+        // Rate limiting sur les routes sensibles : sans lui, le PIN (court par
+        // nature) est exposé a la force brute, et /forgot-pin a l'abus d'envoi
+        // d'emails. 5 tentatives/minute/IP suffisent a un usage humain.
+        Route::post('/login',       [AuthController::class, 'loginWithMatricule'])->middleware('throttle:5,1');
         Route::post('/register',    [AuthController::class, 'register']);
-        Route::post('/forgot-pin',  [AuthController::class, 'forgotPin']);
-        Route::post('/reset-pin',   [AuthController::class, 'resetPin']);
+        Route::post('/forgot-pin',  [AuthController::class, 'forgotPin'])->middleware('throttle:5,1');
+        Route::post('/reset-pin',   [AuthController::class, 'resetPin'])->middleware('throttle:5,1');
     });
 
     // ── Routes protégées ─────────────────────────────────────────────────────

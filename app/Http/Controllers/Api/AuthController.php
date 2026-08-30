@@ -188,14 +188,20 @@ class AuthController extends Controller
         $request->validate(['email' => ['required', 'email']]);
 
         $email = strtolower($request->email);
-        $user  = User::where('email', $email)->where('is_active', true)->first();
 
-        if (!$user) {
-            return response()->json(['message' => 'Si cet email existe, un code vous sera envoyé.']);
-        }
+        // Reponse UNIQUE et constante, quelle que soit l'issue : compte inconnu,
+        // compte connu, ou compte connu mais bloque. Toute variation revelerait
+        // l'existence d'un compte a un attaquant qui teste des adresses.
+        $generic = response()->json([
+            'message' => 'Si un compte correspond à cet email, un code de réinitialisation a été envoyé.',
+        ]);
 
-        if ($failure = $this->tenantAuthFailure($user)) {
-            return $failure;
+        $user = User::where('email', $email)->where('is_active', true)->first();
+
+        // Un compte introuvable ou bloque : on s'arrete SANS le dire. Meme
+        // reponse, meme temps de reponse approximatif.
+        if (!$user || $this->tenantAuthFailure($user)) {
+            return $generic;
         }
 
         OtpToken::where('email', $email)->where('used', false)->delete();
@@ -211,9 +217,7 @@ class AuthController extends Controller
 
         Mail::to($email)->send(new OtpMail($code, $user->name));
 
-        return response()->json([
-            'message' => 'Code de réinitialisation envoyé à ' . $email . '.',
-        ]);
+        return $generic;
     }
 
     public function resetPin(Request $request): JsonResponse
@@ -221,10 +225,17 @@ class AuthController extends Controller
         $request->validate([
             'email'   => ['required', 'email'],
             'code'    => ['required', 'string', 'size:6'],
-            'new_pin' => ['required', 'string', 'min:4', 'max:50', 'confirmed'],
+            // `StrongPin` refuse les valeurs triviales (0000, 1234). La longueur
+            // seule ne protege pas un code court.
+            'new_pin' => ['required', 'string', 'min:4', 'max:50', 'confirmed', new \App\Rules\StrongPin()],
         ]);
 
         $email = strtolower($request->email);
+
+        // Message d'echec UNIQUE : un code faux, expire, deja utilise, ou visant
+        // un compte inconnu doivent etre indistinguables. Sinon on revele quels
+        // emails ont un compte, et quels codes sont valides.
+        $invalid = response()->json(['message' => 'Code invalide ou expiré.'], 422);
 
         $otp = OtpToken::where('email', $email)
             ->where('used', false)
@@ -233,26 +244,29 @@ class AuthController extends Controller
             ->first();
 
         if (!$otp || $otp->attempts >= 3) {
-            return response()->json(['message' => 'Code invalide ou expiré.'], 422);
+            return $invalid;
         }
 
         if ($otp->token !== $request->code) {
             $otp->increment('attempts');
-            return response()->json(['message' => 'Code incorrect.'], 422);
+            return $invalid;
         }
 
+        // Le code est bon : on le consomme immediatement (usage unique).
         $otp->update(['used' => true]);
 
         $user = User::where('email', $email)->where('is_active', true)->first();
-        if (!$user) {
-            return response()->json(['message' => 'Compte introuvable.'], 404);
-        }
 
-        if ($failure = $this->tenantAuthFailure($user)) {
-            return $failure;
+        // Compte devenu introuvable ou bloque entre la demande et la
+        // confirmation : cas rare, meme reponse generique. L'attaquant aurait de
+        // toute facon eu besoin d'un code valide, donc de l'acces a l'email.
+        if (!$user || $this->tenantAuthFailure($user)) {
+            return $invalid;
         }
 
         $user->update(['password' => Hash::make($request->new_pin)]);
+        // Invalide toutes les sessions existantes : un PIN reinitialise doit
+        // deconnecter partout, y compris un eventuel acces frauduleux.
         $user->tokens()->delete();
 
         return response()->json(['message' => 'PIN réinitialisé avec succès. Vous pouvez vous connecter.']);
