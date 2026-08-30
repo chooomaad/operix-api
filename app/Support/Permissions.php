@@ -116,4 +116,20 @@ class Permissions
             array_filter(self::MATRIX, fn (array $roles) => in_array($role, $roles, true))
         ));
     }
+
+    /**
+     * Rôles applicatifs qui détiennent une permission donnée.
+     *
+     * L'inverse de {@see forRole()} : sert à résoudre les destinataires d'une
+     * notification (« qui a le droit de voir un incident ? ») sans dépendre de
+     * l'état des tables Spatie. `super_admin` n'apparaît dans aucune ligne de la
+     * matrice — il contourne les permissions — et n'est donc jamais destinataire
+     * métier ici, ce qui est le comportement voulu.
+     *
+     * @return list<string>
+     */
+    public static function rolesFor(string $permission): array
+    {
+        return array_values(self::MATRIX[$permission] ?? []);
+    }
 }
