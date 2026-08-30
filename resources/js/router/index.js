@@ -23,7 +23,6 @@ const routes = [
             { path: 'incidents',     name: 'incidents',     component: () => import('../views/hsse/Incidents.vue'),   meta: { adminOnly: true } },
             { path: 'near-miss',     name: 'near-miss',     component: () => import('../views/hsse/NearMiss.vue'),    meta: { adminOnly: true } },
             { path: 'environment',   name: 'environment',   component: () => import('../views/hsse/Environment.vue'), meta: { adminOnly: true } },
-            { path: 'gemba-walks',   name: 'gemba-walks',   component: () => import('../views/hsse/GembaWalks.vue'),  meta: { adminOnly: true } },
             { path: 'breaches',      name: 'breaches',      component: () => import('../views/hsse/Breaches.vue'),    meta: { adminOnly: true } },
             { path: 'visitors',      name: 'visitors',      component: () => import('../views/Visitors.vue'),         meta: { adminOnly: true } },
             { path: 'contractors',   name: 'contractors',   component: () => import('../views/Contractors.vue'),      meta: { adminOnly: true } },

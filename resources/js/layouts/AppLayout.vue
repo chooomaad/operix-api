@@ -40,7 +40,6 @@
           <NavItem to="/incidents"     icon="triangle-alert"  :label="t('nav.incidents')" />
           <NavItem to="/near-miss"     icon="circle-alert"    :label="t('nav.near_miss')" />
           <NavItem to="/environment"   icon="leaf"            :label="t('nav.environment')" />
-          <NavItem to="/gemba-walks"   icon="clipboard-list"  :label="t('nav.gemba_walks')" />
           <NavItem to="/breaches"      icon="shield-off"      :label="t('nav.breaches')" />
 
           <SideSection label="Opérations" />
@@ -172,7 +171,6 @@ const pageTitles = {
   '/incidents':     'Incidents',
   '/near-miss':     "Presqu'accidents",
   '/environment':   'Environnement',
-  '/gemba-walks':   'Gemba Walks',
   '/breaches':      'Infractions',
   '/visitors':      'Visiteurs',
   '/contractors':   'Sous-traitants',

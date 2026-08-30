@@ -54,7 +54,6 @@
             <KpiCard accent="#dc2626" icon="triangle-alert" :label="t('nav.incidents')"   :value="kpis.safetyKpis?.total_incidents ?? 0" :sub="`Ouverts : ${kpis.safetyKpis?.open ?? 0}`" />
             <KpiCard accent="#d97706" icon="circle-alert"   :label="t('nav.near_miss')"   :value="kpis.safetyKpis?.total_near_miss ?? 0"  :sub="`Haut/Critique : ${kpis.safetyKpis?.high_critical ?? 0}`" />
             <KpiCard accent="#16a34a" icon="leaf"           :label="t('nav.environment')" :value="kpis.environmentKpis?.total ?? 0"        :sub="`Ouverts : ${kpis.environmentKpis?.open ?? 0}`" />
-            <KpiCard accent="#9333ea" icon="clipboard-list" :label="t('nav.gemba_walks')" :value="kpis.gembaKpis?.total ?? 0"              :sub="`En retard : ${kpis.gembaKpis?.overdue ?? 0}`" />
           </div>
         </section>
 

@@ -9,7 +9,6 @@ use App\Models\Contractor;
 use App\Models\Employee;
 use App\Models\EnvironmentReport;
 use App\Models\Formation;
-use App\Models\GembaWalk;
 use App\Models\MedicalVisit;
 use App\Models\PermitToWork;
 use App\Models\SafetyIncident;
@@ -88,7 +87,6 @@ class ReportController extends Controller
         $safety      = $this->safetyKpis($month, $year);
         $environment = $this->environmentKpis($month, $year);
         $tracker     = $this->safetyTrackerData();
-        $gemba       = $this->gembaKpis();
         $contractors = $this->contractorKpis();
         $visitors    = $this->visitorKpis($month, $year);
 
@@ -116,7 +114,6 @@ class ReportController extends Controller
             'safety'           => $safety,
             'environment'      => $environment,
             'safetyTracker'    => $tracker,
-            'gemba'            => $gemba,
             'contractors'      => $contractors,
             'visitors'         => $visitors,
             'incidentsByMonth' => $incidentsByMonth,
@@ -450,18 +447,6 @@ class ReportController extends Controller
         ];
     }
 
-    private function gembaKpis(): array
-    {
-        $base = GembaWalk::query();
-        return [
-            'total'        => (clone $base)->count(),
-            'total_ouverts'=> (clone $base)->whereIn('status', ['open', 'in_progress'])->count(),
-            'en_retard'    => (clone $base)->where('status', '!=', 'resolved')
-                                 ->whereNotNull('due_date')
-                                 ->whereDate('due_date', '<', now())->count(),
-            'resolus'      => (clone $base)->where('status', 'resolved')->count(),
-        ];
-    }
 
     private function contractorKpis(): array
     {

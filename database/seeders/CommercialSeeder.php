@@ -31,7 +31,7 @@ class CommercialSeeder extends Seeder
                 'description' => 'Pour les équipes HSSE complètes.',
                 'price_monthly' => 12900, 'price_yearly' => 129000, // PLACEHOLDER
                 'max_employees' => 500, 'storage_limit_mb' => 51200,
-                'features' => ['incidents', 'near_miss', 'employees', 'permits', 'gemba', 'audit', 'exports'],
+                'features' => ['incidents', 'near_miss', 'employees', 'permits', 'audit', 'exports'],
                 'contact_sales' => false,
             ],
             [

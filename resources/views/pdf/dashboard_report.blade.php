@@ -137,18 +137,6 @@
       </div>
     </td>
     <td class="kpi-td">
-      <div class="kpi-inner c-amber">
-        <div class="kpi-val" style="color:#d97706;">{{ $gemba['total_ouverts'] ?? 0 }}</div>
-        <div class="kpi-lbl">Gemba ouverts</div>
-      </div>
-    </td>
-    <td class="kpi-td">
-      <div class="kpi-inner c-red">
-        <div class="kpi-val" style="color:#dc2626;">{{ $gemba['en_retard'] ?? 0 }}</div>
-        <div class="kpi-lbl">Gemba en retard</div>
-      </div>
-    </td>
-    <td class="kpi-td">
       <div class="kpi-inner">
         <div class="kpi-val" style="color:#1a1a2e;">{{ $safety['near_miss_ouverts'] ?? 0 }}</div>
         <div class="kpi-lbl">Near miss ouverts</div>

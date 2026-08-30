@@ -13,7 +13,6 @@ use App\Http\Controllers\Api\EnvironmentController;
 use App\Http\Controllers\Api\EquipmentController;
 use App\Http\Controllers\Api\ExportController;
 use App\Http\Controllers\Api\FormationController;
-use App\Http\Controllers\Api\GembaWalkController;
 use App\Http\Controllers\Api\ImportController;
 use App\Http\Controllers\Api\IncidentController;
 use App\Http\Controllers\Api\MediaController;
@@ -284,16 +283,6 @@ Route::prefix('v1')->group(function () {
                 Route::middleware('permission:environment.delete')->delete('/{id}',     [EnvironmentController::class, 'destroy']);
             });
 
-            // ── Gemba Walks ───────────────────────────────────────────────────
-            Route::middleware('permission:gemba.manage')->prefix('gemba-walks')->group(function () {
-                Route::get('/',              [GembaWalkController::class, 'index']);
-                Route::post('/',             [GembaWalkController::class, 'store']);
-                Route::get('/stats',         [GembaWalkController::class, 'stats']);
-                Route::get('/{id}',          [GembaWalkController::class, 'show']);
-                Route::put('/{id}',          [GembaWalkController::class, 'update']);
-                Route::delete('/{id}',       [GembaWalkController::class, 'destroy']);
-                Route::post('/{id}/resolve', [GembaWalkController::class, 'resolve']);
-            });
 
             // ── Infractions / Breaches ────────────────────────────────────────
             Route::middleware('permission:breaches.manage')->prefix('breaches')->group(function () {

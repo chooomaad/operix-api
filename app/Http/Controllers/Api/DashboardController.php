@@ -8,7 +8,6 @@ use App\Models\Contractor;
 use App\Models\Employee;
 use App\Models\Equipment;
 use App\Models\EnvironmentReport;
-use App\Models\GembaWalk;
 use App\Models\SafetyIncident;
 use App\Models\SafetyNearMiss;
 use App\Models\PermitToWork;
@@ -29,7 +28,6 @@ class DashboardController extends Controller
             'employees'    => $this->employeeKpis($month, $year),
             'safety'       => $this->safetyKpis($month, $year),
             'environment'  => $this->environmentKpis($month, $year),
-            'gemba'        => $this->gembaKpis(),
             'contractors'  => $this->contractorKpis(),
             'equipment'    => $this->equipmentKpis(),
             'visitors'     => $this->visitorKpis(),
@@ -307,21 +305,6 @@ class DashboardController extends Controller
         ];
     }
 
-    private function gembaKpis(): array
-    {
-        $base = GembaWalk::query();
-
-        return [
-            'total_ouverts' => (clone $base)->where('status', 'open')->count(),
-            'en_cours'      => (clone $base)->where('status', 'in_progress')->count(),
-            'resolus'       => (clone $base)->where('status', 'resolved')->count(),
-            'en_retard'     => (clone $base)->where('status', '!=', 'resolved')
-                                  ->whereNotNull('due_date')
-                                  ->whereDate('due_date', '<', now())->count(),
-            'high_priority' => (clone $base)->where('status', '!=', 'resolved')
-                                  ->where('priority', 'high')->count(),
-        ];
-    }
 
     private function contractorKpis(): array
     {

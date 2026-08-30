@@ -5,7 +5,6 @@ namespace App\Console\Commands;
 use App\Models\AppNotification;
 use App\Models\Certification;
 use App\Models\Formation;
-use App\Models\GembaWalk;
 use App\Models\MedicalVisit;
 use App\Models\PermitToWork;
 use App\Models\User;
@@ -36,7 +35,6 @@ class SendExpiryNotifications extends Command
         $this->checkMedicalVisits($adminIds, $threshold, $today);
         $this->checkFormations($adminIds, $threshold, $today);
         $this->checkPermits($adminIds, $threshold, $today);
-        $this->checkGembaDeadlines($adminIds, $today);
 
         $this->info('Notifications d\'expiration envoyées.');
         return self::SUCCESS;
@@ -140,50 +138,6 @@ class SendExpiryNotifications extends Command
             ->whereIn('status', ['approved', 'active'])
             ->whereDate('valid_to', '<', $today)
             ->update(['status' => 'expired']);
-    }
-
-    private function checkGembaDeadlines($adminIds, string $today): void
-    {
-        $threshold3 = now()->addDays(3)->toDateString();
-
-        // Fiches en retard (non résolues, deadline dépassée)
-        $overdue = GembaWalk::query()
-            ->where('status', '!=', 'resolved')
-            ->whereNotNull('due_date')
-            ->whereDate('due_date', '<', $today)
-            ->get();
-
-        foreach ($overdue as $walk) {
-            $daysLate = now()->diffInDays($walk->due_date);
-            $this->notify($adminIds, 'error', [
-                'title'    => "⚠️ Gemba en retard — {$walk->zone}",
-                'body'     => "La fiche Gemba «{$walk->observation}» (zone : {$walk->zone}) est en retard de {$daysLate} jour(s). Responsable : {$walk->responsible}.",
-                'type'     => 'gemba_overdue',
-                'model'    => 'gemba_walk',
-                'model_id' => $walk->id,
-                'link'     => '/gemba-walks',
-            ]);
-        }
-
-        // Fiches dont la deadline est dans les 3 prochains jours
-        $dueSoon = GembaWalk::query()
-            ->where('status', '!=', 'resolved')
-            ->whereNotNull('due_date')
-            ->whereDate('due_date', '>=', $today)
-            ->whereDate('due_date', '<=', $threshold3)
-            ->get();
-
-        foreach ($dueSoon as $walk) {
-            $daysLeft = now()->diffInDays($walk->due_date);
-            $this->notify($adminIds, 'warning', [
-                'title'    => "🕐 Gemba — deadline dans {$daysLeft} jour(s)",
-                'body'     => "La fiche Gemba «{$walk->observation}» (zone : {$walk->zone}) doit être résolue avant le {$walk->due_date}. Responsable : {$walk->responsible}.",
-                'type'     => 'gemba_due_soon',
-                'model'    => 'gemba_walk',
-                'model_id' => $walk->id,
-                'link'     => '/gemba-walks',
-            ]);
-        }
     }
 
     private function notify($userIds, string $type, array $data): void

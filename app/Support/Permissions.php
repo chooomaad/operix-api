@@ -82,7 +82,6 @@ class Permissions
         'medical_visits.manage' => [self::CA, self::HM],
 
         // ── Modules d'encadrement ─────────────────────────────────────────────────
-        'gemba.manage'        => [self::CA, self::HM],
         'breaches.manage'     => [self::CA, self::HM],
         'visitors.manage'     => [self::CA, self::HM, self::SV],
         'contractors.manage'  => [self::CA, self::HM],
