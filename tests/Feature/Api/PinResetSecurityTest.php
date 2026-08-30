@@ -212,4 +212,47 @@ class PinResetSecurityTest extends TestCase
         $this->assertStringNotContainsString('token', strtolower($body));
         $this->assertStringNotContainsString('7391', $body);
     }
+
+    public function test_bout_en_bout_ancien_pin_refuse_nouveau_accepte(): void
+    {
+        Mail::fake();
+
+        $tenant = Tenant::factory()->create(['status' => 'active']);
+        $user   = User::factory()->create([
+            'tenant_id' => $tenant->id,
+            'role'      => 'agent',
+            'email'     => 'roundtrip@tcn.mr',
+            'matricule' => 'TCN-RT-001',
+            'is_active' => true,
+            'password'  => Hash::make('7391'),
+        ]);
+
+        // 1. Demande de reset.
+        $this->postJson('/api/v1/auth/forgot-pin', ['email' => 'roundtrip@tcn.mr'])->assertOk();
+
+        // Le lien porte le token en clair ; on le recupere via le mail capture,
+        // exactement comme l'utilisateur le lirait dans son email.
+        $plainToken = null;
+        Mail::assertSent(PinResetMail::class, function (PinResetMail $mail) use (&$plainToken) {
+            parse_str(parse_url($mail->resetUrl, PHP_URL_QUERY) ?? '', $q);
+            $plainToken = $q['token'] ?? null;
+            return $plainToken !== null;
+        });
+        $this->assertNotNull($plainToken);
+
+        // 2. Reinitialisation avec le token du lien.
+        $this->postJson('/api/v1/auth/reset-pin', [
+            'token' => $plainToken, 'new_pin' => '8264', 'new_pin_confirmation' => '8264',
+        ])->assertOk();
+
+        // 3. L'ancien PIN est refuse.
+        $this->postJson('/api/v1/auth/login', [
+            'matricule' => 'TCN-RT-001', 'pin' => '7391', 'platform' => 'web',
+        ])->assertStatus(401);
+
+        // 4. Le nouveau PIN ouvre bien une session.
+        $this->postJson('/api/v1/auth/login', [
+            'matricule' => 'TCN-RT-001', 'pin' => '8264', 'platform' => 'web',
+        ])->assertOk()->assertJsonStructure(['token']);
+    }
 }

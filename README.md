@@ -56,3 +56,7 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## Réinitialisation du PIN
+
+Flux « PIN oublié » par lien email (Resend). Voir [docs/RESET_PIN_RESEND.md](docs/RESET_PIN_RESEND.md).
