@@ -85,6 +85,19 @@ php artisan queue:work --queue=default
 Sans worker, l'incident est bien créé (réponse 201) mais la notification n'est pas
 diffusée tant que le worker n'a pas tourné.
 
+
+### Prérequis Ably : activer l'adaptateur Pusher
+
+Notre transport passe par le protocole Pusher d'Ably. Il faut **activer l'adaptateur
+Pusher** sur l'application Ably, sinon la connexion WebSocket est refusée (erreur
+`4099 — Pusher compatibility mode is not enabled`) :
+
+> Dashboard Ably → app « Operix TCN Production » → **Settings** → **Protocol Adapter**
+> → activer le mode **Pusher** → Save.
+
+Sans ce réglage, la publication REST peut être acceptée mais aucun client ne peut
+s'abonner. C'est un prérequis one-time, indépendant du code.
+
 ### Test réel (deux navigateurs, même tenant TCN)
 - DevTools → Network → **WS** : la connexion s'établit vers Ably → état `connected`,
   le bandeau disparaît.
