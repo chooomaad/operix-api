@@ -45,7 +45,10 @@ class Permissions
     public const MATRIX = [
         // ── Transverse : tout utilisateur authentifié d'un tenant ─────────────────
         'dashboard.view'      => [self::CA, self::HM, self::SV, self::AG],
-        'search.use'          => [self::CA, self::HM, self::SV, self::AG],
+        // Recherche GLOBALE (employés/visiteurs/contractants avec téléphone, NNI, CIN…) :
+        // réservée à l'encadrement. L'agent en est exclu — il n'a que la recherche
+        // employé minimale (employees.agent_search).
+        'search.use'          => [self::CA, self::HM, self::SV],
         'media.upload'        => [self::CA, self::HM, self::SV, self::AG],
         'notifications.view'  => [self::CA, self::HM, self::SV, self::AG],
         'notifications.send'  => [self::CA, self::HM],
@@ -72,9 +75,14 @@ class Permissions
         'environment.delete'  => [self::CA, self::HM],
 
         // ── Personnel & référentiels ──────────────────────────────────────────────
-        'employees.view'      => [self::CA, self::HM, self::SV, self::AG],
-        'employees.manage'    => [self::CA, self::HM],
-        'employees.pii.view'  => [self::CA, self::HM],
+        // employees.view = accès au MODULE complet (liste + fiche). L'agent en est
+        // volontairement exclu : il ne dispose que d'employees.agent_search, une
+        // recherche minimale (matricule / nom / statut) via un endpoint dédié, sans
+        // jamais atteindre les données RH complètes.
+        'employees.view'          => [self::CA, self::HM, self::SV],
+        'employees.agent_search'  => [self::AG],
+        'employees.manage'        => [self::CA, self::HM],
+        'employees.pii.view'      => [self::CA, self::HM],
         'departments.view'    => [self::CA, self::HM, self::SV, self::AG],
         'departments.manage'  => [self::CA],
         'formations.manage'   => [self::CA, self::HM],

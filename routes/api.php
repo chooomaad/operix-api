@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\SafetyTrackerController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Models\Tenant;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\AgentEmployeeController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\VisitorController;
 use Illuminate\Support\Facades\Route;
@@ -111,6 +112,13 @@ Route::prefix('v1')->group(function () {
 
         // ── Recherche globale (tous rôles) ───────────────────────────────────
         Route::middleware('permission:search.use')->get('/search', [SearchController::class, 'search']);
+
+        // ── Recherche employé RÉSERVÉE À L'AGENT ─────────────────────────────
+        // Endpoint dédié (matricule / nom / statut uniquement). Rate limit pour
+        // éviter tout abus massif sans gêner l'UX (§17). Cloisonnement tenant assuré
+        // par le global scope côté serveur.
+        Route::middleware(['permission:employees.agent_search', 'throttle:30,1'])
+            ->get('/agent/employees/search', [AgentEmployeeController::class, 'search']);
 
         // ── Employés (lecture — tous rôles) ──────────────────────────────────
         Route::middleware('permission:employees.view')->group(function () {
