@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+use App\Models\Concerns\Auditable;
 class SafetyIncident extends Model implements HseEvent
 {
     public function hseKind(): string
@@ -21,7 +22,7 @@ class SafetyIncident extends Model implements HseEvent
         return $this->type;
     }
 
-    use BelongsToTenant, HasFactory, SoftDeletes;
+    use Auditable, BelongsToTenant, HasFactory, SoftDeletes;
 
     /**
      * Vocabulaire canonique du champ `type`.

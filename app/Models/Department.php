@@ -5,9 +5,10 @@ namespace App\Models;
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 
+use App\Models\Concerns\Auditable;
 class Department extends Model
 {
-    use BelongsToTenant;
+    use Auditable, BelongsToTenant;
 
     protected $fillable = ['name', 'code', 'description'];
 

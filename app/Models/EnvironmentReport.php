@@ -7,6 +7,7 @@ use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+use App\Models\Concerns\Auditable;
 class EnvironmentReport extends Model implements HseEvent
 {
     public function hseKind(): string
@@ -20,7 +21,7 @@ class EnvironmentReport extends Model implements HseEvent
         return $this->type;
     }
 
-    use BelongsToTenant, SoftDeletes;
+    use Auditable, BelongsToTenant, SoftDeletes;
 
     /**
      * Valeurs par defaut alignees sur celles de PostgreSQL.

@@ -7,6 +7,7 @@ use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+use App\Models\Concerns\Auditable;
 class SafetyNearMiss extends Model implements HseEvent
 {
     public function hseKind(): string
@@ -20,7 +21,7 @@ class SafetyNearMiss extends Model implements HseEvent
         return null;
     }
 
-    use BelongsToTenant, SoftDeletes;
+    use Auditable, BelongsToTenant, SoftDeletes;
 
     protected $table = 'safety_near_miss';
 

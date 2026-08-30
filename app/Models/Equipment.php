@@ -6,9 +6,10 @@ use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+use App\Models\Concerns\Auditable;
 class Equipment extends Model
 {
-    use BelongsToTenant, SoftDeletes;
+    use Auditable, BelongsToTenant, SoftDeletes;
 
     protected $fillable = [
         'code', 'name', 'category',

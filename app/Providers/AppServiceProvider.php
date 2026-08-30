@@ -59,5 +59,18 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Contractor::class,      ContractorPolicy::class);
         Gate::policy(Equipment::class,       EquipmentPolicy::class);
         Gate::policy(PermitToWork::class,    PermitToWorkPolicy::class);
+
+        // Audit automatique (qui / quoi / quand) des modeles marques Auditable.
+        // Enregistre ici (et non via static::observe() dans un boot de trait, qui
+        // provoquerait un boot re-entrant).
+        foreach ([
+            \App\Models\SafetyIncident::class,    \App\Models\SafetyNearMiss::class,
+            \App\Models\EnvironmentReport::class, \App\Models\Breach::class,
+            \App\Models\Employee::class,          \App\Models\User::class,
+            \App\Models\Visitor::class,           \App\Models\Contractor::class,
+            \App\Models\Equipment::class,         \App\Models\Department::class,
+        ] as $auditable) {
+            $auditable::observe(\App\Observers\AuditObserver::class);
+        }
     }
 }

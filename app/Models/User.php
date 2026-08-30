@@ -9,9 +9,10 @@ use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
+use App\Models\Concerns\Auditable;
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, HasRoles;
+    use Auditable, HasApiTokens, HasFactory, Notifiable, HasRoles;
 
     protected static function booted(): void
     {
