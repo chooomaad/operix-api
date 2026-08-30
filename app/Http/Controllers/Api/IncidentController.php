@@ -46,13 +46,11 @@ class IncidentController extends Controller
     {
         $data = $request->validated();
         $data['reported_by'] = $request->user()->id;
-        $data['reference']   = $this->generateReference('INC', SafetyIncident::class);
-
         if ($request->hasFile('image')) {
             $data['image'] = app(\App\Services\TenantFileService::class)->store($request->file('image'), 'incidents');
         }
 
-        $incident = SafetyIncident::create($data);
+        $incident = $this->createWithReference('INC', SafetyIncident::class, $data);
         $incident->load('reporter');
 
         // Diffusion temps reel. L'evenement implemente ShouldBroadcast :

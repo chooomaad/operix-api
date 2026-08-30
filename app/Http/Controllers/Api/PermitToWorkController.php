@@ -53,9 +53,8 @@ class PermitToWorkController extends Controller
             'workers'        => ['nullable', 'array'],
         ]);
 
-        $permit = PermitToWork::create([
+        $permit = $this->createWithReference('PTW', PermitToWork::class, [
             ...$validated,
-            'reference'    => $this->generateReference('PTW', PermitToWork::class),
             'requested_by' => $request->user()->id,
             'status'       => 'draft',
         ]);

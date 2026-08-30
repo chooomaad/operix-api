@@ -48,9 +48,7 @@ class BreachController extends Controller
     {
         $data = $request->validated();
         $data['created_by'] = $request->user()->id;
-        $data['reference']  = $this->generateReference('INF', Breach::class);
-
-        $breach = Breach::create($data);
+        $breach = $this->createWithReference('INF', Breach::class, $data);
         $breach->load(['employee', 'creator']);
 
         return response()->json(new BreachResource($breach), 201);

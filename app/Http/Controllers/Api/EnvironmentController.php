@@ -45,13 +45,11 @@ class EnvironmentController extends Controller
     {
         $data = $request->validated();
         $data['reported_by'] = $request->user()->id;
-        $data['reference']   = $this->generateReference('ENV', EnvironmentReport::class);
-
         if ($request->hasFile('image')) {
             $data['image'] = app(\App\Services\TenantFileService::class)->store($request->file('image'), 'environment');
         }
 
-        $report = EnvironmentReport::create($data);
+        $report = $this->createWithReference('ENV', EnvironmentReport::class, $data);
         $report->load('reporter');
 
         // Diffusion temps reel. L'evenement implemente ShouldBroadcast :

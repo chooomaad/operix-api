@@ -44,13 +44,11 @@ class NearMissController extends Controller
     {
         $data = $request->validated();
         $data['reported_by'] = $request->user()->id;
-        $data['reference']   = $this->generateReference('NM', SafetyNearMiss::class);
-
         if ($request->hasFile('image')) {
             $data['image'] = app(\App\Services\TenantFileService::class)->store($request->file('image'), 'near-miss');
         }
 
-        $nearMiss = SafetyNearMiss::create($data);
+        $nearMiss = $this->createWithReference('NM', SafetyNearMiss::class, $data);
         $nearMiss->load('reporter');
 
         // Diffusion temps reel. L'evenement implemente ShouldBroadcast :
