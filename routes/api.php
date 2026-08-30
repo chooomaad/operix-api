@@ -66,20 +66,9 @@ Route::prefix('v1')->group(function () {
         ->middleware('signed')
         ->name('files.serve');
 
-    // ── Plans (public — pricing du site marketing) ────────────────────────────
-    Route::get('/plans', [\App\Http\Controllers\Api\PlanController::class, 'index']);
-
-    // ── Demande de démo (public, rate-limité anti-spam) ───────────────────────
-    Route::post('/demo-requests', [\App\Http\Controllers\Api\DemoRequestController::class, 'store'])
-        ->middleware('throttle:5,1');
-
-    // ── Checkout (public) : crée une commande, montant calculé serveur ────────
-    Route::post('/checkout', [\App\Http\Controllers\Api\CheckoutController::class, 'store'])
-        ->middleware('throttle:10,1');
-
-    // ── Webhook paiement (provider → serveur, SEULE preuve de paiement) ───────
-    // Pas d'auth Sanctum : l'authenticité vient de la signature vérifiée par le provider.
-    Route::post('/webhooks/payments/{provider}', [\App\Http\Controllers\Api\PaymentWebhookController::class, 'handle']);
+    // Surface de vente publique retiree : Operix est desormais mono-client TCN.
+    // Le noyau de provisioning (ProvisioningService) est conserve comme
+    // infrastructure interne, mais n'est plus expose a la vente.
 
     // ── Activation du compte (définition du mot de passe via token) ───────────
     Route::post('/activate', [\App\Http\Controllers\Api\ActivationController::class, 'activate'])
