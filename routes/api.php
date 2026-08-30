@@ -368,24 +368,9 @@ Route::prefix('v1')->group(function () {
         ->group(function () {
             Route::get('/dashboard', [\App\Http\Controllers\SuperAdmin\DashboardController::class, 'index']);
 
-            // Demandes de démo
-            Route::get('/demo-requests',            [\App\Http\Controllers\SuperAdmin\DemoRequestController::class, 'index']);
-            Route::get('/demo-requests/{id}',       [\App\Http\Controllers\SuperAdmin\DemoRequestController::class, 'show']);
-            Route::put('/demo-requests/{id}/status', [\App\Http\Controllers\SuperAdmin\DemoRequestController::class, 'updateStatus']);
-            Route::post('/demo-requests/{id}/convert',[\App\Http\Controllers\SuperAdmin\DemoRequestController::class, 'convert']);
-
-            // Plans (prix administrables)
-            Route::get('/plans',      [\App\Http\Controllers\SuperAdmin\PlanController::class, 'index']);
-            Route::post('/plans',     [\App\Http\Controllers\SuperAdmin\PlanController::class, 'store']);
-            Route::put('/plans/{id}', [\App\Http\Controllers\SuperAdmin\PlanController::class, 'update']);
-
-            // Commandes / Paiements / Abonnements (lecture)
-            Route::get('/orders',            [\App\Http\Controllers\SuperAdmin\OrderController::class, 'index']);
-            Route::get('/orders/{id}',       [\App\Http\Controllers\SuperAdmin\OrderController::class, 'show']);
-            Route::get('/payments',          [\App\Http\Controllers\SuperAdmin\PaymentController::class, 'index']);
-            Route::get('/payments/{id}',     [\App\Http\Controllers\SuperAdmin\PaymentController::class, 'show']);
-            Route::get('/subscriptions',     [\App\Http\Controllers\SuperAdmin\SubscriptionController::class, 'index']);
-            Route::get('/subscriptions/{id}',[\App\Http\Controllers\SuperAdmin\SubscriptionController::class, 'show']);
+            // Console de vente retiree (demo, plans, commandes, paiements,
+            // abonnements). La gestion des entreprises (tenants) et le tableau
+            // de bord super-admin sont conserves.
 
             Route::prefix('tenants')->group(function () {
                 Route::get('/',                 [\App\Http\Controllers\SuperAdmin\TenantController::class, 'index']);
