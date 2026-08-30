@@ -193,29 +193,37 @@ class AuthController extends Controller
         // compte connu, ou compte connu mais bloque. Toute variation revelerait
         // l'existence d'un compte a un attaquant qui teste des adresses.
         $generic = response()->json([
-            'message' => 'Si un compte correspond à cet email, un code de réinitialisation a été envoyé.',
+            'message' => 'Si les informations correspondent à un compte autorisé, un email de réinitialisation vous sera envoyé.',
         ]);
 
         $user = User::where('email', $email)->where('is_active', true)->first();
 
-        // Un compte introuvable ou bloque : on s'arrete SANS le dire. Meme
-        // reponse, meme temps de reponse approximatif.
+        // Un compte introuvable ou bloque : on s'arrete SANS le dire. Meme reponse.
         if (!$user || $this->tenantAuthFailure($user)) {
             return $generic;
         }
 
-        OtpToken::where('email', $email)->where('used', false)->delete();
-        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        // Jeton a usage unique, stocke HACHE. Le token en clair ne sort d'ici que
+        // dans l'URL du lien envoye par email.
+        $plain = app(\App\Services\PinResetService::class)->issue($user);
 
-        OtpToken::create([
-            'email'      => $email,
-            'token'      => $code,
-            'attempts'   => 0,
-            'expires_at' => now()->addMinutes(10),
-            'used'       => false,
-        ]);
+        $url = rtrim(config('operix.app_url'), '/')
+            . '/reset-pin?token=' . urlencode($plain);
 
-        Mail::to($email)->send(new OtpMail($code, $user->name));
+        // Un echec d'envoi ne doit ni reveler que le compte existe, ni bloquer
+        // l'utilisateur : on journalise sans secret et on renvoie la meme reponse.
+        try {
+            Mail::to($user->email)->send(new \App\Mail\PinResetMail(
+                $user->name,
+                $url,
+                \App\Services\PinResetService::TTL_MINUTES,
+            ));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Echec envoi email reset PIN', [
+                'user_id' => $user->id,
+                'error'   => $e->getMessage(),
+            ]);
+        }
 
         return $generic;
     }
@@ -223,48 +231,35 @@ class AuthController extends Controller
     public function resetPin(Request $request): JsonResponse
     {
         $request->validate([
-            'email'   => ['required', 'email'],
-            'code'    => ['required', 'string', 'size:6'],
+            'token'   => ['required', 'string'],
             // `StrongPin` refuse les valeurs triviales (0000, 1234). La longueur
             // seule ne protege pas un code court.
             'new_pin' => ['required', 'string', 'min:4', 'max:50', 'confirmed', new \App\Rules\StrongPin()],
         ]);
 
-        $email = strtolower($request->email);
+        // Message d'echec UNIQUE : token faux, expire, deja utilise, ou visant un
+        // compte devenu invalide sont indistinguables.
+        $invalid = response()->json(['message' => 'Lien invalide ou expiré.'], 422);
 
-        // Message d'echec UNIQUE : un code faux, expire, deja utilise, ou visant
-        // un compte inconnu doivent etre indistinguables. Sinon on revele quels
-        // emails ont un compte, et quels codes sont valides.
-        $invalid = response()->json(['message' => 'Code invalide ou expiré.'], 422);
+        $service = app(\App\Services\PinResetService::class);
+        $token   = $service->resolve($request->token);
 
-        $otp = OtpToken::where('email', $email)
-            ->where('used', false)
-            ->where('expires_at', '>', now())
-            ->latest()
-            ->first();
-
-        if (!$otp || $otp->attempts >= 3) {
+        if (!$token) {
             return $invalid;
         }
 
-        if ($otp->token !== $request->code) {
-            $otp->increment('attempts');
+        $user = $token->user;
+
+        if (!$user || !$user->is_active || $this->tenantAuthFailure($user)) {
             return $invalid;
         }
 
-        // Le code est bon : on le consomme immediatement (usage unique).
-        $otp->update(['used' => true]);
-
-        $user = User::where('email', $email)->where('is_active', true)->first();
-
-        // Compte devenu introuvable ou bloque entre la demande et la
-        // confirmation : cas rare, meme reponse generique. L'attaquant aurait de
-        // toute facon eu besoin d'un code valide, donc de l'acces a l'email.
-        if (!$user || $this->tenantAuthFailure($user)) {
-            return $invalid;
-        }
+        // Consomme le jeton AVANT le changement (usage unique) : une double
+        // soumission du meme lien echoue.
+        $service->consume($token);
 
         $user->update(['password' => Hash::make($request->new_pin)]);
+
         // Invalide toutes les sessions existantes : un PIN reinitialise doit
         // deconnecter partout, y compris un eventuel acces frauduleux.
         $user->tokens()->delete();
