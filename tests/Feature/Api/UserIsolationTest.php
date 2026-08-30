@@ -93,4 +93,70 @@ class UserIsolationTest extends TestCase
             'tenant_id' => $tenantB->id,
         ]);
     }
+
+    public function test_admin_can_delete_a_user_of_own_tenant(): void
+    {
+        $tenant = Tenant::factory()->create(['status' => 'active']);
+        $admin  = $this->adminFor($tenant);
+        $target = User::factory()->create([
+            'tenant_id' => $tenant->id,
+            'role'      => 'agent',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->deleteJson("/api/v1/users/{$target->id}")
+            ->assertOk();
+
+        $this->assertDatabaseMissing('users', ['id' => $target->id]);
+    }
+
+    public function test_admin_cannot_delete_their_own_account(): void
+    {
+        $tenant = Tenant::factory()->create(['status' => 'active']);
+        $admin  = $this->adminFor($tenant);
+
+        $this->actingAs($admin)
+            ->deleteJson("/api/v1/users/{$admin->id}")
+            ->assertStatus(422);
+
+        // Le compte est toujours là.
+        $this->assertDatabaseHas('users', ['id' => $admin->id]);
+    }
+
+    public function test_deleting_a_user_keeps_their_reported_incidents_with_null_reporter(): void
+    {
+        $tenant = Tenant::factory()->create(['status' => 'active']);
+        $admin  = $this->adminFor($tenant);
+        $agent  = User::factory()->create([
+            'tenant_id' => $tenant->id, 'role' => 'agent', 'is_active' => true,
+        ]);
+
+        // Un incident signalé par l'agent (créé hors requête, tenant posé).
+        $incident = app(\App\Support\TenantContext::class)->runWithoutScope(function () use ($tenant, $agent) {
+            app(\App\Support\TenantContext::class)->set($tenant->id);
+            try {
+                return \App\Models\SafetyIncident::create([
+                    'reference'   => 'INC-DEL-0001',
+                    'date'        => '2026-08-30',
+                    'location'    => 'Quai',
+                    'type'        => 'FAC',
+                    'severity'    => 'low',
+                    'description' => 'Incident conserve apres suppression du compte.',
+                    'status'      => 'open',
+                    'reported_by' => $agent->id,
+                ]);
+            } finally {
+                app(\App\Support\TenantContext::class)->clear();
+            }
+        });
+
+        $this->actingAs($admin)->deleteJson("/api/v1/users/{$agent->id}")->assertOk();
+
+        // L'incident survit ; seul son auteur passe à null (FK nullOnDelete).
+        $this->assertDatabaseHas('safety_incidents', [
+            'id'          => $incident->id,
+            'reported_by' => null,
+        ]);
+    }
 }

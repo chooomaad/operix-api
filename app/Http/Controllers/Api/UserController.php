@@ -107,6 +107,25 @@ class UserController extends Controller
             return response()->json(['message' => 'Vous ne pouvez pas supprimer votre propre compte.'], 422);
         }
 
+        // Garde-fou anti-verrouillage : ne jamais supprimer le DERNIER administrateur
+        // d'entreprise, sinon plus personne ne pourrait gérer les comptes ni les rôles.
+        if ($user->role === 'company_admin') {
+            $otherAdmins = $this->tenantUserQuery($request)
+                ->where('role', 'company_admin')
+                ->where('id', '!=', $user->id)
+                ->count();
+
+            if ($otherAdmins === 0) {
+                return response()->json([
+                    'message' => "Impossible de supprimer le dernier administrateur de l'entreprise.",
+                ], 422);
+            }
+        }
+
+        // Suppression définitive : le compte et ses jetons sont retirés. Les données
+        // métier référençant l'utilisateur (incidents signalés, journal d'audit) sont
+        // conservées, leur auteur passant simplement à « null » (FK nullOnDelete).
+        // Pour préserver l'attribution, préférer la désactivation.
         $user->tokens()->delete();
         $user->delete();
 
