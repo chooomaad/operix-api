@@ -32,7 +32,10 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => array_filter(array_map('trim', explode(',', env('CORS_ALLOWED_ORIGINS', '*')))),
+    // Deny-by-default : si CORS_ALLOWED_ORIGINS n'est pas defini, AUCUNE origine
+    // n'est autorisee (liste vide), plutot que '*' qui ouvrait l'API a tout le
+    // web. La production DOIT declarer explicitement ses origines.
+    'allowed_origins' => array_filter(array_map('trim', explode(',', env('CORS_ALLOWED_ORIGINS', '')))),
 
     'allowed_origins_patterns' => [],
 

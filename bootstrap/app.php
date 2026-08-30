@@ -31,6 +31,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(prepend: [
             \App\Http\Middleware\ForceJsonResponse::class,
         ]);
+        // En-tetes de securite sur toute reponse API.
+        $middleware->api(append: [
+            \App\Http\Middleware\SecurityHeaders::class,
+        ]);
         $middleware->alias([
             'tenant.scope' => \App\Http\Middleware\TenantScope::class,   // vestige (no-op) conservé
             'tenant'       => \App\Http\Middleware\ResolveTenant::class,
