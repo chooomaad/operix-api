@@ -55,21 +55,25 @@ class EmployeePiiTest extends TestCase
         ]);
     }
 
-    public function test_agent_sees_the_directory_without_personal_data(): void
+    public function test_agent_is_denied_the_full_module_and_uses_the_minimal_search(): void
     {
+        // Politique (phase Agent) : l'agent n'a PLUS acces au module Employees. Il
+        // dispose d'un endpoint dedie ne renvoyant que matricule / nom / statut.
         $tenant = Tenant::factory()->create(['status' => 'active']);
         $this->seedEmployee($tenant);
         $agent = $this->userWithRole('agent', $tenant);
 
+        // Le module complet lui est refuse.
+        $this->actingAs($agent)->getJson('/api/v1/employees')->assertStatus(403);
+
+        // Sa recherche dediee fonctionne, et n'expose aucune donnee personnelle.
         $row = $this->actingAs($agent)
-            ->getJson('/api/v1/employees')
+            ->getJson('/api/v1/agent/employees/search?q=Ould')
             ->assertStatus(200)
             ->json('data.0');
 
-        // Les champs professionnels restent necessaires au travail de terrain.
+        $this->assertSame(['matricule', 'name', 'status'], array_keys($row));
         $this->assertSame('TCN-PII-001', $row['matricule']);
-        $this->assertSame('Ould Ahmed', $row['nom']);
-
         foreach (self::PII as $field) {
             $this->assertArrayNotHasKey($field, $row, "Le champ personnel {$field} ne doit pas etre expose a un agent.");
         }
@@ -106,24 +110,18 @@ class EmployeePiiTest extends TestCase
     }
 
     /**
-     * Sans ce verrou, la recherche globale restituerait les memes donnees en
-     * contournant EmployeeResource.
+     * La recherche GLOBALE (qui restituerait nni/phone/email en contournant
+     * EmployeeResource) est desormais interdite a l'agent : il ne peut donc rien
+     * en fuiter. La non-fuite est garantie a la racine, par l'absence d'acces.
      */
-    public function test_global_search_does_not_leak_personal_data_to_an_agent(): void
+    public function test_global_search_is_denied_to_an_agent(): void
     {
         $tenant = Tenant::factory()->create(['status' => 'active']);
         $this->seedEmployee($tenant);
         $agent = $this->userWithRole('agent', $tenant);
 
-        $results = $this->actingAs($agent)
+        $this->actingAs($agent)
             ->getJson('/api/v1/search?q=Ould')
-            ->assertStatus(200)
-            ->json('employees');
-
-        $this->assertNotEmpty($results, 'La recherche doit rester fonctionnelle pour un agent.');
-
-        foreach (['nni', 'phone', 'email'] as $field) {
-            $this->assertArrayNotHasKey($field, $results[0], "La recherche expose {$field} a un agent.");
-        }
+            ->assertStatus(403);
     }
 }

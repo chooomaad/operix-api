@@ -30,6 +30,10 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            // Un compte de test est ACTIF par défaut : c'est l'état normal d'un
+            // utilisateur en production. Les scénarios de compte désactivé posent
+            // explicitement is_active = false.
+            'is_active' => true,
         ];
     }
 
