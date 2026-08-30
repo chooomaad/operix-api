@@ -5,8 +5,8 @@ Flux « PIN oublié » du web Operix TCN. Lien sécurisé envoyé par email.
 ## Parcours
 
 ```
-Connexion → « PIN oublié ? » → email
-        ↓  POST /api/v1/auth/forgot-pin { email }
+Connexion → « PIN oublié ? » → matricule
+        ↓  POST /api/v1/auth/forgot-pin { matricule }
 Réponse GÉNÉRIQUE (jamais « ce compte existe »)
         ↓  email Resend → lien https://APP/reset-pin?token=…
 Page /reset-pin → nouveau PIN + confirmation
@@ -19,7 +19,7 @@ PIN changé, sessions invalidées → connexion
 - `Str::random(64)`, cryptographiquement aléatoire.
 - Stocké **uniquement haché** (SHA-256) dans `pin_reset_tokens` — jamais en clair.
 - **Usage unique** (`used_at`). Une nouvelle demande invalide les liens précédents.
-- **Expiration : 60 min** (`PinResetService::TTL_MINUTES`).
+- **Expiration : 30 min** (`PinResetService::TTL_MINUTES`).
 - Le token n'apparaît que dans l'URL du lien — jamais le PIN, jamais le hash.
 
 Mécanisme calqué sur `ActivationService` (patron éprouvé du projet), dans une
@@ -70,3 +70,14 @@ domaine — aucun changement de code.
 
 Voir le runbook complet (clé, domaine vérifié, test réel, sécurité) :
 [docs/INTEGRATIONS_RESEND_ABLY.md](INTEGRATIONS_RESEND_ABLY.md).
+
+## Anti-spam & file d'attente
+
+- **Entrée = matricule** (identifiant de connexion de l'agent) ; l'email part vers
+  l'adresse enregistrée sur le compte.
+- **Cooldown 60 s** + **plafond 5/heure par compte** (limite appliquée au matricule
+  SOUMIS, existant ou non → un `429` ne révèle jamais l'existence d'un compte) ;
+  **throttle par IP** (route `throttle:5,1`). Plusieurs clics rapides ⇒ **un seul
+  email**. Le frontend affiche un décompte de renvoi.
+- **Envoi en file** (`PinResetMail implements ShouldQueue`) : la réponse HTTP
+  n'attend pas Resend. Un worker (`php artisan queue:work`) est requis en production.
