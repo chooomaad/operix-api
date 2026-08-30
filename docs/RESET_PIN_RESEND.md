@@ -65,3 +65,8 @@ tests (14 cas, dont un round-trip : demande → token du lien → reset → l'an
 PIN est refusé, le nouveau ouvre une session), avec `Mail::fake` et le mailer
 `log`. La bascule vers un envoi réel ne demande que de renseigner la clé et le
 domaine — aucun changement de code.
+
+## Configuration production
+
+Voir le runbook complet (clé, domaine vérifié, test réel, sécurité) :
+[docs/INTEGRATIONS_RESEND_ABLY.md](INTEGRATIONS_RESEND_ABLY.md).

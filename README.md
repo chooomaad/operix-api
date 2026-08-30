@@ -60,3 +60,11 @@ The Laravel framework is open-sourced software licensed under the [MIT license](
 ## Réinitialisation du PIN
 
 Flux « PIN oublié » par lien email (Resend). Voir [docs/RESET_PIN_RESEND.md](docs/RESET_PIN_RESEND.md).
+
+## Intégrations production (Resend & Ably)
+
+Activation réelle des emails (Resend) et du temps réel (Ably) — clé, domaine
+vérifié, variables, worker de file, test manuel, comportement en panne, sécurité
+des secrets : voir [docs/INTEGRATIONS_RESEND_ABLY.md](docs/INTEGRATIONS_RESEND_ABLY.md).
+Les secrets (`RESEND_KEY`, `ABLY_SECRET`) restent **serveur uniquement**, jamais en
+`VITE_*`, jamais commités.

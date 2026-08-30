@@ -68,3 +68,8 @@ live n'a pas été vérifié**. L'intégration est prouvée par les tests automa
 tenant, persistance) et par le fallback Reverb en dev. La bascule production ne
 demande que de renseigner `ABLY_APP_ID` / `ABLY_PUBLIC_KEY` / `ABLY_SECRET` (serveur)
 et `VITE_ABLY_PUBLIC_KEY` (client) — aucun changement de code.
+
+## Configuration production (Ably)
+
+Voir le runbook complet (credentials, VITE, worker de file, test réel, panne) :
+[docs/INTEGRATIONS_RESEND_ABLY.md](INTEGRATIONS_RESEND_ABLY.md).
