@@ -5,8 +5,8 @@ Flux « PIN oublié » du web Operix TCN. Lien sécurisé envoyé par email.
 ## Parcours
 
 ```
-Connexion → « PIN oublié ? » → matricule
-        ↓  POST /api/v1/auth/forgot-pin { matricule }
+Connexion → « PIN oublié ? » → email
+        ↓  POST /api/v1/auth/forgot-pin { email }
 Réponse GÉNÉRIQUE (jamais « ce compte existe »)
         ↓  email Resend → lien https://APP/reset-pin?token=…
 Page /reset-pin → nouveau PIN + confirmation
@@ -73,8 +73,8 @@ Voir le runbook complet (clé, domaine vérifié, test réel, sécurité) :
 
 ## Anti-spam & file d'attente
 
-- **Entrée = matricule** (identifiant de connexion de l'agent) ; l'email part vers
-  l'adresse enregistrée sur le compte.
+- **Entrée = adresse email** ; le lien de reset part vers
+  cette même adresse (destinataire = email propre du compte).
 - **Cooldown 60 s** + **plafond 5/heure par compte** (limite appliquée au matricule
   SOUMIS, existant ou non → un `429` ne révèle jamais l'existence d'un compte) ;
   **throttle par IP** (route `throttle:5,1`). Plusieurs clics rapides ⇒ **un seul

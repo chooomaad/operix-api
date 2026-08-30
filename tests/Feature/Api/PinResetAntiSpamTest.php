@@ -13,44 +13,41 @@ use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 /**
- * Anti-spam du flux « PIN oublie » : cooldown, plafond horaire, throttle IP.
+ * Anti-spam du flux « PIN oublie » (par EMAIL) : cooldown, plafond horaire, throttle IP.
  *
- * L'objectif : plusieurs clics rapides ne produisent qu'UN email, et un abus est
+ * Objectif : plusieurs clics rapides ne produisent qu'UN email, et un abus est
  * bloque proprement (429) — sans jamais reveler l'existence d'un compte (les
- * limites s'appliquent au matricule SOUMIS, existant ou non).
+ * limites s'appliquent a l'EMAIL SOUMIS, existant ou non).
  */
 class PinResetAntiSpamTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function agent(string $matricule): User
+    private function user(string $email): User
     {
         $tenant = Tenant::factory()->create(['status' => 'active']);
 
         return User::factory()->create([
             'tenant_id' => $tenant->id,
             'role'      => 'agent',
-            'matricule' => $matricule,
-            'email'     => strtolower($matricule) . '@tcn.mr',
+            'email'     => $email,
             'is_active' => true,
             'password'  => Hash::make('7391'),
         ]);
     }
 
-    private function forgot(string $matricule)
+    private function forgot(string $email)
     {
-        return $this->postJson('/api/v1/auth/forgot-pin', ['matricule' => $matricule]);
+        return $this->postJson('/api/v1/auth/forgot-pin', ['email' => $email]);
     }
 
     public function test_cooldown_un_seul_email_par_minute(): void
     {
         Mail::fake();
-        $this->agent('TCN-SPAM-1');
+        $this->user('spam1@tcn.mr');
 
-        // Premier clic : accepte, un email en file.
-        $this->forgot('TCN-SPAM-1')->assertOk();
-        // Deuxieme clic immediat : bloque (429), aucun email supplementaire.
-        $this->forgot('TCN-SPAM-1')
+        $this->forgot('spam1@tcn.mr')->assertOk();
+        $this->forgot('spam1@tcn.mr')
             ->assertStatus(429)
             ->assertJsonStructure(['message', 'retry_after']);
 
@@ -60,40 +57,37 @@ class PinResetAntiSpamTest extends TestCase
     public function test_vingt_clics_rapides_donnent_un_seul_email(): void
     {
         Mail::fake();
-        $this->agent('TCN-SPAM-2');
+        $this->user('spam2@tcn.mr');
 
         for ($i = 0; $i < 20; $i++) {
-            $this->forgot('TCN-SPAM-2');
+            $this->forgot('spam2@tcn.mr');
         }
 
-        // Un seul email malgre 20 tentatives.
         Mail::assertQueued(PinResetMail::class, 1);
     }
 
     public function test_plafond_de_cinq_demandes_par_heure_par_compte(): void
     {
         Mail::fake();
-        $this->agent('TCN-SPAM-3');
+        $this->user('spam3@tcn.mr');
 
-        // Espace les demandes de 61 s pour franchir le cooldown a chaque fois,
-        // tout en restant dans l'heure : les 5 premieres passent, la 6e est bloquee
-        // par le plafond horaire.
+        // 61 s entre chaque demande : franchit le cooldown, reste dans l'heure.
+        // Les 5 premieres passent, la 6e est bloquee par le plafond horaire.
         for ($i = 0; $i < 5; $i++) {
-            $this->forgot('TCN-SPAM-3')->assertOk();
+            $this->forgot('spam3@tcn.mr')->assertOk();
             $this->travel(61)->seconds();
         }
-        $this->forgot('TCN-SPAM-3')->assertStatus(429);
+        $this->forgot('spam3@tcn.mr')->assertStatus(429);
     }
 
-    public function test_la_limite_s_applique_a_un_matricule_inexistant_sans_revelation(): void
+    public function test_la_limite_s_applique_a_un_email_inexistant_sans_revelation(): void
     {
         Mail::fake();
 
-        // Matricule inconnu : premiere demande = reponse generique 200 ; deuxieme
-        // immediate = 429 comme pour un compte existant. Le 429 ne distingue donc
-        // pas un compte reel d'un compte fictif.
-        $this->forgot('MATRICULE-FANTOME')->assertOk();
-        $this->forgot('MATRICULE-FANTOME')->assertStatus(429);
+        // Adresse inconnue : 1re demande = 200 generique, 2e immediate = 429 comme
+        // pour un compte existant. Le 429 ne distingue pas reel de fictif.
+        $this->forgot('fantome@example.com')->assertOk();
+        $this->forgot('fantome@example.com')->assertStatus(429);
 
         Mail::assertNothingQueued();
     }
@@ -102,22 +96,21 @@ class PinResetAntiSpamTest extends TestCase
     {
         Mail::fake();
 
-        // Matricules DIFFERENTS (donc cooldown par compte non declenche) depuis la
-        // meme IP : la route (throttle:5,1) bloque a la 6e demande dans la minute.
+        // Emails DIFFERENTS (cooldown par compte non declenche) depuis la meme IP :
+        // la route (throttle:5,1) bloque a la 6e demande dans la minute.
         for ($i = 1; $i <= 5; $i++) {
-            $this->forgot("TCN-IP-{$i}")->assertOk();
+            $this->forgot("ip{$i}@tcn.mr")->assertOk();
         }
-        $this->forgot('TCN-IP-6')->assertStatus(429);
+        $this->forgot('ip6@tcn.mr')->assertStatus(429);
     }
 
     public function test_le_lien_expire_apres_30_minutes(): void
     {
-        $user  = $this->agent('TCN-TTL-1');
+        $user = $this->user('ttl@tcn.mr');
         app(PinResetService::class)->issue($user);
 
         $token = PinResetToken::where('user_id', $user->id)->first();
 
-        // Fenetre de validite = 30 minutes (a la seconde pres).
         $this->assertEqualsWithDelta(30 * 60, now()->diffInSeconds($token->expires_at), 5);
         $this->assertSame(30, PinResetService::TTL_MINUTES);
     }

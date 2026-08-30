@@ -187,26 +187,28 @@ class AuthController extends Controller
 
     public function forgotPin(Request $request): JsonResponse
     {
-        // L'agent saisit son MATRICULE (son identifiant de connexion). L'email de
-        // reset part vers l'adresse enregistree sur le compte correspondant.
-        $request->validate(['matricule' => ['required', 'string', 'max:50']]);
+        // L'utilisateur saisit son ADRESSE EMAIL. Le lien de reset part vers cette
+        // meme adresse (le destinataire est donc toujours l'email PROPRE du compte).
+        $request->validate(['email' => ['required', 'string', 'email', 'max:255']]);
 
-        $matricule = strtolower(trim($request->matricule));
+        // Normalisation : trim + minuscules, pour une recherche et une limitation
+        // stables quelle que soit la casse ou les espaces saisis.
+        $email = strtolower(trim($request->email));
 
-        $genericMessage = 'Si les informations correspondent à un compte autorisé, un email de réinitialisation vous sera envoyé.';
+        $genericMessage = 'Si un compte associé à cette adresse existe, un lien de réinitialisation a été envoyé.';
 
         // Reponse UNIQUE et constante, quelle que soit l'issue : compte inconnu,
         // compte connu, ou compte connu mais bloque. Toute variation revelerait
-        // l'existence d'un compte a un attaquant qui teste des matricules.
+        // l'existence d'un compte a un attaquant qui teste des adresses.
         $generic = response()->json(['message' => $genericMessage]);
 
         // ── ANTI-SPAM par compte (independant de l'existence du compte) ──────────
-        // On limite le MATRICULE soumis, pas seulement l'IP : plusieurs clics
+        // On limite l'EMAIL soumis (normalise), pas seulement l'IP : plusieurs clics
         // rapides ne produisent qu'un email. Le compteur est incremente que le
         // compte existe ou non — un 429 ne revele donc jamais l'existence.
         //   - anti-rejeu : 1 demande par 60 s ;
         //   - plafond : 5 demandes par heure.
-        $key     = 'forgot-pin:' . hash('sha256', $matricule);
+        $key     = 'forgot-pin:' . hash('sha256', $email);
         $coolKey = $key . ':cooldown';
 
         foreach ([[$key, 5, 'hour'], [$coolKey, 1, 'cooldown']] as [$rlKey, $max, $_]) {
@@ -220,8 +222,8 @@ class AuthController extends Controller
         RateLimiter::hit($key, 3600);   // fenetre horaire
         RateLimiter::hit($coolKey, 60); // cooldown 60 s
 
-        // Recherche insensible a la casse, comme le login.
-        $user = User::whereRaw('LOWER(matricule) = ?', [$matricule])
+        // Recherche par email, insensible a la casse (l'email soumis est deja normalise).
+        $user = User::whereRaw('LOWER(email) = ?', [$email])
             ->where('is_active', true)
             ->first();
 
