@@ -21,7 +21,7 @@ use Illuminate\Support\Str;
 class PinResetService
 {
     /** Duree de validite d'un lien de reset, en minutes. */
-    public const TTL_MINUTES = 60;
+    public const TTL_MINUTES = 30;
 
     /**
      * Emet un jeton pour l'utilisateur et renvoie le token EN CLAIR.

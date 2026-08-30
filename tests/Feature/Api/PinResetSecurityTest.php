@@ -32,6 +32,7 @@ class PinResetSecurityTest extends TestCase
             'tenant_id' => $tenant->id,
             'role'      => 'agent',
             'email'     => $email,
+            'matricule' => strtoupper(explode('@', $email)[0]),
             'is_active' => true,
             'password'  => Hash::make('7391'),
         ]);
@@ -50,8 +51,8 @@ class PinResetSecurityTest extends TestCase
         Mail::fake();
         $this->activeUser('agent@tcn.mr');
 
-        $known   = $this->postJson('/api/v1/auth/forgot-pin', ['email' => 'agent@tcn.mr']);
-        $unknown = $this->postJson('/api/v1/auth/forgot-pin', ['email' => 'personne@tcn.mr']);
+        $known   = $this->postJson('/api/v1/auth/forgot-pin', ['matricule' => 'AGENT']);
+        $unknown = $this->postJson('/api/v1/auth/forgot-pin', ['matricule' => 'PERSONNE']);
 
         $known->assertOk();
         $unknown->assertOk();
@@ -66,20 +67,20 @@ class PinResetSecurityTest extends TestCase
         Mail::fake();
         $user = $this->activeUser('reel@tcn.mr');
 
-        $this->postJson('/api/v1/auth/forgot-pin', ['email' => 'reel@tcn.mr'])->assertOk();
+        $this->postJson('/api/v1/auth/forgot-pin', ['matricule' => 'REEL'])->assertOk();
 
         // Un jeton existe en base pour ce compte, et l'email est envoye.
         $this->assertDatabaseHas('pin_reset_tokens', ['user_id' => $user->id, 'used_at' => null]);
-        Mail::assertSent(PinResetMail::class);
+        Mail::assertQueued(PinResetMail::class);
     }
 
     public function test_forgot_pin_n_envoie_rien_pour_un_email_inconnu(): void
     {
         Mail::fake();
-        $this->postJson('/api/v1/auth/forgot-pin', ['email' => 'inconnu@tcn.mr'])->assertOk();
+        $this->postJson('/api/v1/auth/forgot-pin', ['matricule' => 'INCONNU'])->assertOk();
 
         $this->assertDatabaseCount('pin_reset_tokens', 0);
-        Mail::assertNothingSent();
+        Mail::assertNothingQueued();
     }
 
     public function test_le_jeton_est_stocke_hache_jamais_en_clair(): void
@@ -97,14 +98,37 @@ class PinResetSecurityTest extends TestCase
         Mail::fake();
         $user = $this->activeUser('mail@tcn.mr');
 
-        $this->postJson('/api/v1/auth/forgot-pin', ['email' => 'mail@tcn.mr'])->assertOk();
+        $this->postJson('/api/v1/auth/forgot-pin', ['matricule' => 'MAIL'])->assertOk();
 
-        Mail::assertSent(PinResetMail::class, function (PinResetMail $mail) {
+        Mail::assertQueued(PinResetMail::class, function (PinResetMail $mail) {
             // L'URL porte le token en clair (usage unique, court), mais jamais le
             // PIN ni un hash de secret.
             return str_contains($mail->resetUrl, 'token=')
                 && !str_contains($mail->resetUrl, '7391');
         });
+    }
+
+    public function test_forgot_pin_reste_generique_pour_un_compte_desactive(): void
+    {
+        Mail::fake();
+        $user = $this->activeUser('inactif@tcn.mr');
+        $user->update(['is_active' => false]);
+
+        // Compte desactive : meme reponse generique, AUCUN email (on ne revele rien).
+        $this->postJson('/api/v1/auth/forgot-pin', ['matricule' => 'INACTIF'])->assertOk();
+        Mail::assertNothingQueued();
+        $this->assertDatabaseCount('pin_reset_tokens', 0);
+    }
+
+    public function test_forgot_pin_reste_generique_pour_un_tenant_suspendu(): void
+    {
+        Mail::fake();
+        $user   = $this->activeUser('suspendu@tcn.mr');
+        $user->tenant->update(['status' => 'suspended']);
+
+        $this->postJson('/api/v1/auth/forgot-pin', ['matricule' => 'SUSPENDU'])->assertOk();
+        Mail::assertNothingQueued();
+        $this->assertDatabaseCount('pin_reset_tokens', 0);
     }
 
     // ── Reinitialisation (reset-pin) ────────────────────────────────────────
@@ -204,7 +228,7 @@ class PinResetSecurityTest extends TestCase
         Mail::fake();
         $user  = $this->activeUser('secret@tcn.mr');
 
-        $forgot = $this->postJson('/api/v1/auth/forgot-pin', ['email' => 'secret@tcn.mr']);
+        $forgot = $this->postJson('/api/v1/auth/forgot-pin', ['matricule' => 'SECRET']);
         $plain  = PinResetToken::where('user_id', $user->id)->first();
 
         // La reponse ne contient ni token, ni hash, ni PIN.
@@ -228,12 +252,12 @@ class PinResetSecurityTest extends TestCase
         ]);
 
         // 1. Demande de reset.
-        $this->postJson('/api/v1/auth/forgot-pin', ['email' => 'roundtrip@tcn.mr'])->assertOk();
+        $this->postJson('/api/v1/auth/forgot-pin', ['matricule' => 'TCN-RT-001'])->assertOk();
 
         // Le lien porte le token en clair ; on le recupere via le mail capture,
         // exactement comme l'utilisateur le lirait dans son email.
         $plainToken = null;
-        Mail::assertSent(PinResetMail::class, function (PinResetMail $mail) use (&$plainToken) {
+        Mail::assertQueued(PinResetMail::class, function (PinResetMail $mail) use (&$plainToken) {
             parse_str(parse_url($mail->resetUrl, PHP_URL_QUERY) ?? '', $q);
             $plainToken = $q['token'] ?? null;
             return $plainToken !== null;

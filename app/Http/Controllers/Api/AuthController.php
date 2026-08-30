@@ -13,6 +13,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
@@ -185,21 +187,46 @@ class AuthController extends Controller
 
     public function forgotPin(Request $request): JsonResponse
     {
-        $request->validate(['email' => ['required', 'email']]);
+        // L'agent saisit son MATRICULE (son identifiant de connexion). L'email de
+        // reset part vers l'adresse enregistree sur le compte correspondant.
+        $request->validate(['matricule' => ['required', 'string', 'max:50']]);
 
-        $email = strtolower($request->email);
+        $matricule = strtolower(trim($request->matricule));
+
+        $genericMessage = 'Si les informations correspondent à un compte autorisé, un email de réinitialisation vous sera envoyé.';
 
         // Reponse UNIQUE et constante, quelle que soit l'issue : compte inconnu,
         // compte connu, ou compte connu mais bloque. Toute variation revelerait
-        // l'existence d'un compte a un attaquant qui teste des adresses.
-        $generic = response()->json([
-            'message' => 'Si les informations correspondent à un compte autorisé, un email de réinitialisation vous sera envoyé.',
-        ]);
+        // l'existence d'un compte a un attaquant qui teste des matricules.
+        $generic = response()->json(['message' => $genericMessage]);
 
-        $user = User::where('email', $email)->where('is_active', true)->first();
+        // ── ANTI-SPAM par compte (independant de l'existence du compte) ──────────
+        // On limite le MATRICULE soumis, pas seulement l'IP : plusieurs clics
+        // rapides ne produisent qu'un email. Le compteur est incremente que le
+        // compte existe ou non — un 429 ne revele donc jamais l'existence.
+        //   - anti-rejeu : 1 demande par 60 s ;
+        //   - plafond : 5 demandes par heure.
+        $key     = 'forgot-pin:' . hash('sha256', $matricule);
+        $coolKey = $key . ':cooldown';
 
-        // Un compte introuvable ou bloque : on s'arrete SANS le dire. Meme reponse.
-        if (!$user || $this->tenantAuthFailure($user)) {
+        foreach ([[$key, 5, 'hour'], [$coolKey, 1, 'cooldown']] as [$rlKey, $max, $_]) {
+            if (RateLimiter::tooManyAttempts($rlKey, $max)) {
+                return response()->json(
+                    ['message' => $genericMessage, 'retry_after' => RateLimiter::availableIn($rlKey)],
+                    429,
+                );
+            }
+        }
+        RateLimiter::hit($key, 3600);   // fenetre horaire
+        RateLimiter::hit($coolKey, 60); // cooldown 60 s
+
+        // Recherche insensible a la casse, comme le login.
+        $user = User::whereRaw('LOWER(matricule) = ?', [$matricule])
+            ->where('is_active', true)
+            ->first();
+
+        // Un compte introuvable, sans email, ou bloque : on s'arrete SANS le dire.
+        if (!$user || !$user->email || $this->tenantAuthFailure($user)) {
             return $generic;
         }
 

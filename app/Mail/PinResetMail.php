@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -14,8 +15,13 @@ use Illuminate\Queue\SerializesModels;
  * Transport-agnostique : passe par le mailer configure (resend en production,
  * log/array en test). Le token n'apparait QUE dans l'URL du lien — jamais en
  * texte, jamais le PIN, jamais le hash.
+ *
+ * MIS EN FILE (ShouldQueue) : l'envoi part par la queue, la reponse HTTP de
+ * /forgot-pin n'attend donc jamais Resend. Une lenteur ou une panne du service
+ * d'email ne ralentit pas l'utilisateur. En test (QUEUE_CONNECTION=sync) l'envoi
+ * reste synchrone, ce qui garde les tests deterministes.
  */
-class PinResetMail extends Mailable
+class PinResetMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
