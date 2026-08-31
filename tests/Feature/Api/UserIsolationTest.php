@@ -94,6 +94,31 @@ class UserIsolationTest extends TestCase
         ]);
     }
 
+    public function test_presence_is_online_reflects_recent_activity(): void
+    {
+        $tenant = Tenant::factory()->create(['status' => 'active']);
+        $admin  = $this->adminFor($tenant);
+
+        // Un membre vu il y a 5 min = hors ligne ; un autre vu a l'instant = en ligne.
+        $offline = User::factory()->create([
+            'tenant_id' => $tenant->id, 'role' => 'agent', 'is_active' => true,
+            'last_seen_at' => now()->subMinutes(5),
+        ]);
+        $online = User::factory()->create([
+            'tenant_id' => $tenant->id, 'role' => 'hsse_manager', 'is_active' => true,
+            'last_seen_at' => now(),
+        ]);
+
+        $rows = collect(
+            $this->actingAs($admin)->getJson('/api/v1/users')->assertOk()->json('data')
+        );
+
+        $this->assertFalse($rows->firstWhere('id', $offline->id)['is_online']);
+        $this->assertTrue($rows->firstWhere('id', $online->id)['is_online']);
+        // L'admin qui vient de faire la requete est marque en ligne par le heartbeat.
+        $this->assertTrue($rows->firstWhere('id', $admin->id)['is_online']);
+    }
+
     public function test_last_login_is_recorded_on_login_and_returned_in_the_list(): void
     {
         $tenant = Tenant::factory()->create(['status' => 'active']);

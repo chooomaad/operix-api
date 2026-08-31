@@ -146,6 +146,10 @@ class UserController extends Controller
             // Derniere connexion reelle, posee par AuthController a chaque login.
             // Null tant que le compte ne s'est jamais connecte (affiche « — »).
             'last_login_at' => $u->last_login_at?->toIso8601String(),
+            'last_seen_at'  => $u->last_seen_at?->toIso8601String(),
+            // « En ligne » = activite dans les 2 dernieres minutes (heartbeat pose
+            // par le middleware TrackPresence a chaque requete API authentifiee).
+            'is_online'     => $u->last_seen_at !== null && $u->last_seen_at->gt(now()->subMinutes(2)),
             'created_at' => $u->created_at?->toDateString(),
         ];
     }

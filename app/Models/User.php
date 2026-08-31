@@ -30,7 +30,7 @@ class User extends Authenticatable
     protected $fillable = [
         'tenant_id',
         'name', 'email', 'password',
-        'role', 'matricule', 'phone', 'avatar', 'is_active', 'last_login_at',
+        'role', 'matricule', 'phone', 'avatar', 'is_active', 'last_login_at', 'last_seen_at',
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -40,6 +40,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'last_login_at'     => 'datetime',
+            'last_seen_at'      => 'datetime',
             'password'          => 'hashed',
             'is_active'         => 'boolean',
         ];

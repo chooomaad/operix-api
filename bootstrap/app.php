@@ -40,6 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant.scope' => \App\Http\Middleware\TenantScope::class,   // vestige (no-op) conservé
             'tenant'       => \App\Http\Middleware\ResolveTenant::class,
             'tenant.context' => \App\Http\Middleware\EnsureTenantContext::class,
+            'presence' => \App\Http\Middleware\TrackPresence::class,
             'permission'   => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'superadmin'   => \App\Http\Middleware\SuperAdmin::class,
         ]);
