@@ -13,9 +13,13 @@ class UpdateBreachRequest extends FormRequest
         return [
             'date'        => ['sometimes', 'date'],
             'type'        => ['sometimes', 'string', 'max:100'],
-            'severity'    => ['sometimes', 'in:avertissement,blame,mise_a_pied,licenciement'],
+            'location'    => ['nullable', 'string', 'max:255'],
+            'severity'    => ['sometimes', 'in:low,medium,high,critical'],
             'description' => ['sometimes', 'string'],
-            'sanction'    => ['nullable', 'string'],
+            'corrective_action' => ['nullable', 'string'],
+            'employees'   => ['nullable', 'array'],
+            'employees.*' => ['integer', 'exists:employees,id'],
+            'employee_id' => ['nullable', 'integer', 'exists:employees,id'],
         ];
     }
 }

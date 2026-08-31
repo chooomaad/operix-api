@@ -12,13 +12,14 @@ class Breach extends Model
     use Auditable, BelongsToTenant, SoftDeletes;
 
     protected $fillable = [
-        'reference', 'employee_id', 'date', 'type', 'location',
+        'reference', 'employee_id', 'employees', 'date', 'type', 'location',
         'severity', 'description', 'corrective_action',
         'status', 'created_by',
     ];
 
     protected $casts = [
         'date' => 'date',
+        'employees' => 'array',
     ];
 
     public function employee() { return $this->belongsTo(Employee::class); }

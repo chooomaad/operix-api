@@ -11,10 +11,13 @@ class StoreBreachRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'employee_id' => ['required', 'integer', 'exists:employees,id'],
+            'employee_id' => ['nullable', 'integer', 'exists:employees,id'],
+            'employees'   => ['nullable', 'array'],
+            'employees.*' => ['integer', 'exists:employees,id'],
+            'location'    => ['nullable', 'string', 'max:255'],
             'date'        => ['required', 'date'],
             'type'        => ['required', 'string', 'max:100'],
-            'severity'    => ['required', 'in:avertissement,blame,mise_a_pied,licenciement'],
+            'severity'    => ['required', 'in:low,medium,high,critical'],
             'description' => ['required', 'string'],
             'sanction'    => ['nullable', 'string'],
         ];

@@ -16,9 +16,15 @@ class EmployeeController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Employee::query()
-            ->with('department')
-            ->withCount(['formations', 'certifications']);
+        // Mode « leger » pour la recherche du selecteur de personnes : on evite les
+        // sous-requetes de comptage et le chargement du departement, inutiles pour
+        // une recherche as-you-type — la reponse est plus rapide et plus legere.
+        $light = $request->boolean('light');
+
+        $query = Employee::query();
+        if (! $light) {
+            $query->with('department')->withCount(['formations', 'certifications']);
+        }
 
         if ($request->filled('search')) {
             $s = $request->search;
@@ -136,7 +142,10 @@ class EmployeeController extends Controller
         ]);
 
         // Infractions liées à cet employé
-        $breaches = $employee->breaches->map(fn ($b) => [
+        $breaches = \App\Models\Breach::where(function ($q) use ($id) {
+                $q->where('employee_id', $id)
+                  ->orWhereRaw('employees @> ?::jsonb', [json_encode([$id])]);
+            })->orderByDesc('date')->get()->map(fn ($b) => [
             'id'          => $b->id,
             'reference'   => $b->reference,
             'date'        => $b->date?->format('d/m/Y'),
