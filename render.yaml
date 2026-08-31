@@ -1,0 +1,49 @@
+# ── Blueprint Render : API Operix HSSE + base PostgreSQL ─────────────────────
+# Déploie depuis le dossier operix-api (Root Directory = operix-api si monorepo).
+# Après le 1er déploiement, mettre CORS_ALLOWED_ORIGINS = l'URL Vercel réelle.
+databases:
+  - name: operix-db
+    databaseName: operix
+    plan: free            # passer à "basic" pour la vraie prod (le free s'endort/expire)
+
+services:
+  - type: web
+    name: operix-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free            # le free s'endort après 15 min d'inactivité (1er appel lent)
+    healthCheckPath: /api/v1/organisation
+    envVars:
+      - key: APP_KEY
+        sync: false        # ⚠ à remplir : `php artisan key:generate --show` en local, coller ici
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: RUN_SEED
+        value: "true"      # crée tenant TCN + admin au 1er boot (idempotent) — repasser à false ensuite
+      - key: QUEUE_CONNECTION
+        value: sync        # jobs exécutés en ligne : pas de worker séparé nécessaire pour un test
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        fromDatabase: { name: operix-db, property: host }
+      - key: DB_PORT
+        fromDatabase: { name: operix-db, property: port }
+      - key: DB_DATABASE
+        fromDatabase: { name: operix-db, property: database }
+      - key: DB_USERNAME
+        fromDatabase: { name: operix-db, property: user }
+      - key: DB_PASSWORD
+        fromDatabase: { name: operix-db, property: password }
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false        # ⚠ mettre l'URL Vercel, ex: https://operix.vercel.app
+      # Email (Resend) — optionnel pour un test ; laisser vide sinon
+      - key: MAIL_MAILER
+        value: log         # "resend" en prod ; "log" écrit les mails dans les logs
+      # Temps réel (Ably) — optionnel ; renseigner pour activer le live
+      - key: BROADCAST_CONNECTION
+        value: null
