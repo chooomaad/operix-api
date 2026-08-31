@@ -26,21 +26,25 @@ class MedicalVisitController extends Controller
 
         $validated = $request->validate([
             'date'             => 'required|date',
-            'type'             => 'in:embauche,periodique,reprise,spontanee',
-            'resultat'         => 'in:apte,apte_restrictions,inapte',
+            'type'             => 'nullable|in:embauche,periodique,reprise,spontanee',
+            'resultat'         => 'nullable|in:apte,apte_restrictions,inapte',
             'restrictions'     => 'nullable|string',
             'prochaine_visite' => 'nullable|date|after:date',
             'medecin'          => 'nullable|string|max:255',
-            'document'         => 'nullable|string|max:255',
             'observations'     => 'nullable|string',
+            'image'            => 'nullable|image|max:5120',
         ]);
 
-        $visit = MedicalVisit::create([
-            ...$validated,
-            'employee_id' => $employeeId,
-        ]);
+        $data = collect($validated)->except('image')->all();
+        $data['employee_id'] = $employeeId;
+        // `type` et `resultat` sont NOT NULL en base : défaut sûr.
+        $data['type']     = $validated['type']     ?? 'periodique';
+        $data['resultat'] = $validated['resultat'] ?? 'apte';
+        if ($request->hasFile('image')) {
+            $data['document'] = app(\App\Services\TenantFileService::class)->store($request->file('image'), 'medical-visits');
+        }
 
-        return response()->json($visit, 201);
+        return response()->json(MedicalVisit::create($data), 201);
     }
 
     public function update(Request $request, int $employeeId, int $id): JsonResponse
@@ -50,16 +54,22 @@ class MedicalVisitController extends Controller
 
         $validated = $request->validate([
             'date'             => 'sometimes|date',
-            'type'             => 'in:embauche,periodique,reprise,spontanee',
-            'resultat'         => 'in:apte,apte_restrictions,inapte',
+            'type'             => 'nullable|in:embauche,periodique,reprise,spontanee',
+            'resultat'         => 'nullable|in:apte,apte_restrictions,inapte',
             'restrictions'     => 'nullable|string',
             'prochaine_visite' => 'nullable|date',
             'medecin'          => 'nullable|string|max:255',
-            'document'         => 'nullable|string|max:255',
             'observations'     => 'nullable|string',
+            'image'            => 'nullable|image|max:5120',
         ]);
 
-        $visit->update($validated);
+        $data = collect($validated)->except('image')->all();
+        if ($request->hasFile('image')) {
+            $svc = app(\App\Services\TenantFileService::class);
+            $data['document'] = $svc->replace($visit->document, $request->file('image'), 'medical-visits');
+        }
+
+        $visit->update($data);
 
         return response()->json($visit);
     }

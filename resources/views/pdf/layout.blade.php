@@ -76,6 +76,10 @@ body {
   margin: 14px 0 6px 0;
 }
 
+/* ── Sous-titres & vides (historique HSSE) ── */
+.hsse-sub { font-size: 9px; font-weight: bold; color: {{ $brandColor ?? '#0f2847' }}; margin: 10px 0 3px 0; }
+.hsse-empty { font-size: 8.5px; color: #a0aec0; margin: 0 0 8px 0; font-style: italic; }
+
 /* ── Tables de données ── */
 .data-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 9px; }
 .data-table th {

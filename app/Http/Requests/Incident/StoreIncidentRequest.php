@@ -4,11 +4,13 @@ namespace App\Http\Requests\Incident;
 
 use App\Models\SafetyIncident;
 use App\Http\Requests\Concerns\ValidatesGeolocation;
+use App\Http\Requests\Concerns\ValidatesInvolvedEmployees;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreIncidentRequest extends FormRequest
 {
+    use ValidatesInvolvedEmployees;
     use ValidatesGeolocation;
 
     public function authorize(): bool { return true; }
@@ -27,10 +29,8 @@ class StoreIncidentRequest extends FormRequest
             'corrective_action'     => ['nullable', 'string'],
             'corrective_action_due' => ['nullable', 'date'],
             'status'                => ['nullable', 'in:open,in_progress,closed'],
-            'employees'             => ['nullable', 'array'],
-            'employees.*'           => ['integer'],
             'image'                 => ['nullable', 'image', 'max:5120'],
-        ] + $this->geolocationRules();
+        ] + $this->geolocationRules() + $this->involvedEmployeesRules();
     }
 
     /**

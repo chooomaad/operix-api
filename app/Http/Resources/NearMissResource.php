@@ -26,7 +26,7 @@ class NearMissResource extends JsonResource
             'corrective_action'     => $this->corrective_action,
             'corrective_action_due' => $this->corrective_action_due?->format('Y-m-d'),
             'status'                => $this->status,
-            'employees'             => $this->employees,
+            'employees'             => $this->employees ?? [],
             'image'                 => $this->image,
             'image_url'             => app(\App\Services\TenantFileService::class)->url($this->image),
             'reported_by'           => $this->whenLoaded('reporter', fn() => [

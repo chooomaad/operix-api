@@ -30,18 +30,22 @@ class FormationController extends Controller
             'date_debut'   => 'required|date',
             'date_fin'     => 'nullable|date|after_or_equal:date_debut',
             'duree_jours'  => 'nullable|integer|min:1',
-            'type'         => 'in:interne,externe,elearning,habilitation,autre',
-            'statut'       => 'in:planifiee,en_cours,terminee,annulee',
-            'certificat'   => 'nullable|string|max:255',
+            'type'         => 'nullable|in:interne,externe,elearning,habilitation,autre',
+            'statut'       => 'nullable|in:planifiee,en_cours,terminee,annulee',
             'observations' => 'nullable|string',
+            'image'        => 'nullable|image|max:5120',
         ]);
 
-        $formation = Formation::create([
-            ...$validated,
-            'employee_id' => $employeeId,
-        ]);
+        $data = collect($validated)->except('image')->all();
+        $data['employee_id'] = $employeeId;
+        // `type` et `statut` sont NOT NULL en base : on applique un défaut sûr.
+        $data['type']   = $validated['type']   ?? 'externe';
+        $data['statut'] = $validated['statut'] ?? 'terminee';
+        if ($request->hasFile('image')) {
+            $data['certificat'] = app(\App\Services\TenantFileService::class)->store($request->file('image'), 'formations');
+        }
 
-        return response()->json($formation, 201);
+        return response()->json(Formation::create($data), 201);
     }
 
     public function update(Request $request, int $employeeId, int $id): JsonResponse
@@ -55,13 +59,19 @@ class FormationController extends Controller
             'date_debut'   => 'sometimes|date',
             'date_fin'     => 'nullable|date',
             'duree_jours'  => 'nullable|integer|min:1',
-            'type'         => 'in:interne,externe,elearning,habilitation,autre',
-            'statut'       => 'in:planifiee,en_cours,terminee,annulee',
-            'certificat'   => 'nullable|string|max:255',
+            'type'         => 'nullable|in:interne,externe,elearning,habilitation,autre',
+            'statut'       => 'nullable|in:planifiee,en_cours,terminee,annulee',
             'observations' => 'nullable|string',
+            'image'        => 'nullable|image|max:5120',
         ]);
 
-        $formation->update($validated);
+        $data = collect($validated)->except('image')->all();
+        if ($request->hasFile('image')) {
+            $svc = app(\App\Services\TenantFileService::class);
+            $data['certificat'] = $svc->replace($formation->certificat, $request->file('image'), 'formations');
+        }
+
+        $formation->update($data);
 
         return response()->json($formation);
     }

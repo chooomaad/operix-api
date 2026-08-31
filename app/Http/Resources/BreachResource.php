@@ -19,9 +19,12 @@ class BreachResource extends JsonResource
             'reference'   => $this->reference,
             'date'        => $this->date?->format('Y-m-d'),
             'type'        => $this->type,
+            'location'    => $this->location,
             'severity'    => $this->severity,
+            'status'      => $this->status,
             'employees'   => $this->employees ?? [],
             'description' => $this->description,
+            'corrective_action' => $this->corrective_action,
             'sanction'    => $this->sanction,
             'employee'    => $this->whenLoaded('employee', fn() => [
                 'id'        => $this->employee->id,

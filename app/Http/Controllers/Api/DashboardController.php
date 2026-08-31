@@ -105,6 +105,52 @@ class DashboardController extends Controller
         return response()->json(['activities' => $all]);
     }
 
+    /**
+     * Personnes les plus impliquees dans les evenements HSSE (incidents,
+     * presqu'accidents, manquements, environnement) — agrege le champ `employees`
+     * (jsonb) de chaque module, tenant-scope par les global scopes. Donnees reelles.
+     */
+    public function topPersons(): JsonResponse
+    {
+        $counts = [];
+        foreach ([
+            \App\Models\SafetyIncident::class,
+            \App\Models\SafetyNearMiss::class,
+            \App\Models\Breach::class,
+            \App\Models\EnvironmentReport::class,
+        ] as $model) {
+            foreach ($model::query()->whereNotNull('employees')->pluck('employees') as $emps) {
+                foreach ((array) $emps as $id) {
+                    $id = (int) $id;
+                    if ($id > 0) {
+                        $counts[$id] = ($counts[$id] ?? 0) + 1;
+                    }
+                }
+            }
+        }
+
+        arsort($counts);
+        $top = array_slice($counts, 0, 6, true);
+
+        $employees = \App\Models\Employee::whereIn('id', array_keys($top))
+            ->get(['id', 'nom', 'prenom', 'matricule'])->keyBy('id');
+
+        $persons = collect($top)->map(function ($count, $id) use ($employees) {
+            $e = $employees[$id] ?? null;
+            if (! $e) {
+                return null;
+            }
+            return [
+                'id'        => $id,
+                'name'      => trim("{$e->prenom} {$e->nom}"),
+                'matricule' => $e->matricule,
+                'count'     => $count,
+            ];
+        })->filter()->values();
+
+        return response()->json(['persons' => $persons]);
+    }
+
     public function topZones(): JsonResponse
     {
         $incidents = SafetyIncident::query()
@@ -288,6 +334,8 @@ class DashboardController extends Controller
             'lti_ytd'           => $ltiYtd,
             'taux_frequence'    => $tf,
             'infractions_mois'  => Breach::query()->whereYear('date', $year)->whereMonth('date', $month)->count(),
+            'infractions_ytd'   => Breach::query()->whereYear('date', $year)->count(),
+            'infractions_ouverts' => Breach::query()->where('status', 'open')->count(),
         ];
     }
 

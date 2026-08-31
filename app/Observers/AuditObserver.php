@@ -34,6 +34,9 @@ class AuditObserver
         \App\Models\Contractor::class        => 'contractor',
         \App\Models\Equipment::class         => 'equipment',
         \App\Models\Department::class         => 'department',
+        \App\Models\Formation::class         => 'training',
+        \App\Models\Certification::class     => 'certification',
+        \App\Models\MedicalVisit::class      => 'medical_visit',
     ];
 
     /** Champs jamais recopies dans le journal (secrets). */
@@ -208,10 +211,13 @@ class AuditObserver
             'equipment'   => 'Equipement',
             'breach'      => 'Infraction',
             'department'  => 'Departement',
-            'incident'    => 'Incident',
-            'near_miss'   => 'Presqu accident',
-            'environment' => 'Rapport environnement',
-            default       => ucfirst($label),
+            'incident'     => 'Incident',
+            'near_miss'    => 'Presqu accident',
+            'environment'  => 'Rapport environnement',
+            'training'     => 'Formation',
+            'certification' => 'Certification',
+            'medical_visit' => 'Visite medicale',
+            default        => ucfirst($label),
         };
         return "{$noun} {$verbe}";
     }

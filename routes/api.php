@@ -134,6 +134,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/incident-stats',     [DashboardController::class, 'incidentStats']);
             Route::get('/recent-activity',    [DashboardController::class, 'recentActivity']);
             Route::get('/top-zones',          [DashboardController::class, 'topZones']);
+            Route::get('/top-persons',        [DashboardController::class, 'topPersons']);
         });
 
         // ── Admin seulement ───────────────────────────────────────────────────

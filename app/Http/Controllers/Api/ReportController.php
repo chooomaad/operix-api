@@ -332,6 +332,28 @@ class ReportController extends Controller
         $org      = $this->orgBranding($request);
         $employee = Employee::with('department:id,name')->findOrFail($id);
 
+        // Historique HSSE : événements où l'employé est impliqué (colonne jsonb
+        // `employees`), même logique que l'écran profil (EmployeeController::history).
+        $empJson  = json_encode([$id]);
+        $incidents = SafetyIncident::whereRaw('employees @> ?::jsonb', [$empJson])
+            ->orderByDesc('date')->get();
+        $nearMiss  = SafetyNearMiss::whereRaw('employees @> ?::jsonb', [$empJson])
+            ->orderByDesc('date')->get();
+        $breaches  = Breach::where(function ($q) use ($id, $empJson) {
+                $q->where('employee_id', $id)->orWhereRaw('employees @> ?::jsonb', [$empJson]);
+            })->orderByDesc('date')->get();
+        $environment = EnvironmentReport::whereRaw('employees @> ?::jsonb', [$empJson])
+            ->orderByDesc('date')->get();
+
+        $formations     = Formation::where('employee_id', $id)->orderByDesc('date_debut')->get();
+        $certifications = Certification::where('employee_id', $id)->orderByDesc('date_obtention')->get();
+        $medicalVisits  = MedicalVisit::where('employee_id', $id)->orderByDesc('date')->get();
+
+        // Justificatifs image intégrés en base64 (dompdf ne charge pas d'URL distante).
+        $formations->each(fn ($f)     => $f->img_data = $this->imgDataUri($f->certificat));
+        $certifications->each(fn ($c)  => $c->img_data = $this->imgDataUri($c->document));
+        $medicalVisits->each(fn ($v)   => $v->img_data = $this->imgDataUri($v->document));
+
         $pdf = Pdf::loadView('pdf.employee_profile', [
             'title'          => "Profil : {$employee->full_name}",
             'orgName'        => $org['name'],
@@ -339,9 +361,13 @@ class ReportController extends Controller
             'orgLogo'        => $org['logo'],
             'brandColor'     => $org['color'],
             'employee'       => $employee,
-            'formations'     => Formation::where('employee_id', $id)->orderByDesc('date_debut')->get(),
-            'certifications' => Certification::where('employee_id', $id)->orderByDesc('date_obtention')->get(),
-            'medicalVisits'  => MedicalVisit::where('employee_id', $id)->orderByDesc('date')->get(),
+            'incidents'      => $incidents,
+            'nearMiss'       => $nearMiss,
+            'breaches'       => $breaches,
+            'environment'    => $environment,
+            'formations'     => $formations,
+            'certifications' => $certifications,
+            'medicalVisits'  => $medicalVisits,
         ])->setPaper('a4', 'portrait');
 
         $this->auditLog($request, 'export_pdf', 'employee_profile', $id);
@@ -387,6 +413,34 @@ class ReportController extends Controller
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /**
+     * Lit un fichier stocké (disque tenant-media ou public) et le renvoie en
+     * data URI base64, uniquement s'il s'agit d'une image — pour l'intégrer
+     * directement dans le PDF (dompdf ne récupère pas les URL distantes/signées).
+     */
+    private function imgDataUri(?string $path): ?string
+    {
+        if (! $path) {
+            return null;
+        }
+        foreach ([config('operix.media_disk', 'tenant-media'), 'public'] as $disk) {
+            try {
+                $storage = \Illuminate\Support\Facades\Storage::disk($disk);
+                if (! $storage->exists($path)) {
+                    continue;
+                }
+                $mime = $storage->mimeType($path) ?: 'image/png';
+                if (! str_starts_with($mime, 'image/')) {
+                    return null; // PDF ou autre justificatif non-image : pas d'aperçu
+                }
+                return 'data:' . $mime . ';base64,' . base64_encode($storage->get($path));
+            } catch (\Throwable $e) {
+                // disque indisponible / fichier illisible : on ignore l'aperçu
+            }
+        }
+        return null;
+    }
 
     private function applyDateFilters($query, array $filters, string $field): void
     {
