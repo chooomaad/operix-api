@@ -94,6 +94,38 @@ class UserIsolationTest extends TestCase
         ]);
     }
 
+    public function test_last_login_is_recorded_on_login_and_returned_in_the_list(): void
+    {
+        $tenant = Tenant::factory()->create(['status' => 'active']);
+        $admin  = $this->adminFor($tenant);
+
+        $member = User::factory()->create([
+            'tenant_id'     => $tenant->id,
+            'role'          => 'hsse_manager',
+            'matricule'     => 'TCN-LL-001',
+            'is_active'     => true,
+            'password'      => \Illuminate\Support\Facades\Hash::make('7391'),
+            'last_login_at' => null,
+        ]);
+
+        // Avant toute connexion : pas de derniere connexion.
+        $this->assertNull($member->last_login_at);
+
+        // Le membre se connecte -> le login enregistre last_login_at.
+        $this->postJson('/api/v1/auth/login', [
+            'matricule' => 'TCN-LL-001', 'pin' => '7391', 'platform' => 'web',
+        ])->assertOk();
+
+        $this->assertNotNull($member->fresh()->last_login_at);
+
+        // La liste Users (vue admin) expose bien last_login_at, non nul pour ce membre.
+        $row = collect(
+            $this->actingAs($admin)->getJson('/api/v1/users')->assertOk()->json('data')
+        )->firstWhere('id', $member->id);
+
+        $this->assertNotNull($row['last_login_at'] ?? null);
+    }
+
     public function test_admin_can_delete_a_user_of_own_tenant(): void
     {
         $tenant = Tenant::factory()->create(['status' => 'active']);

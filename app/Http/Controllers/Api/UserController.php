@@ -143,6 +143,9 @@ class UserController extends Controller
             'phone'      => $u->phone,
             'avatar'     => $u->avatar,
             'is_active'  => $u->is_active,
+            // Derniere connexion reelle, posee par AuthController a chaque login.
+            // Null tant que le compte ne s'est jamais connecte (affiche « — »).
+            'last_login_at' => $u->last_login_at?->toIso8601String(),
             'created_at' => $u->created_at?->toDateString(),
         ];
     }
