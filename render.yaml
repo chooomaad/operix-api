@@ -44,6 +44,7 @@ services:
       # Email (Resend) — optionnel pour un test ; laisser vide sinon
       - key: MAIL_MAILER
         value: log         # "resend" en prod ; "log" écrit les mails dans les logs
-      # Temps réel (Ably) — optionnel ; renseigner pour activer le live
+      # Temps réel : "log" = pas de diffusion (boot OK sans Ably). Mettre "ably"
+      # + les clés ABLY_* pour activer le live en prod.
       - key: BROADCAST_CONNECTION
-        value: null
+        value: log
