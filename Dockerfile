@@ -1,6 +1,7 @@
 # ── Operix HSSE API — image de production (Render / Docker) ──────────────────
-# Laravel 13 / PHP 8.3 servi par Apache (mod_php), docroot = /public.
-FROM php:8.3-apache
+# Laravel 13 / PHP 8.4 servi par Apache (mod_php), docroot = /public.
+# PHP 8.4 requis : le composer.lock verrouille Symfony 8.1 (php >= 8.4.1).
+FROM php:8.4-apache
 
 # Dépendances système + extensions PHP (PostgreSQL, GD pour les images, zip, bcmath)
 RUN apt-get update && apt-get install -y --no-install-recommends \
