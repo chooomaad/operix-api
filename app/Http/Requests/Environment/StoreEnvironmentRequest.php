@@ -18,6 +18,8 @@ class StoreEnvironmentRequest extends FormRequest
             'location'              => ['required', 'string', 'max:255'],
             'type'                  => ['required', 'in:spill,emission,waste,noise,other'],
             'severity'              => ['required', 'in:low,medium,high,critical'],
+            'employees'             => ['nullable', 'array'],
+            'employees.*'           => ['integer', 'exists:employees,id'],
             'description'           => ['required', 'string'],
             'impact'                => ['nullable', 'string'],
             'corrective_action'     => ['nullable', 'string'],

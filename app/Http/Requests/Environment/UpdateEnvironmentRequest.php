@@ -18,6 +18,8 @@ class UpdateEnvironmentRequest extends FormRequest
             'location'              => ['sometimes', 'string', 'max:255'],
             'type'                  => ['sometimes', 'in:spill,emission,waste,noise,other'],
             'severity'              => ['sometimes', 'in:low,medium,high,critical'],
+            'employees'             => ['nullable', 'array'],
+            'employees.*'           => ['integer', 'exists:employees,id'],
             'description'           => ['sometimes', 'string'],
             'impact'                => ['nullable', 'string'],
             'corrective_action'     => ['nullable', 'string'],

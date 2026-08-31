@@ -21,6 +21,7 @@ class EnvironmentResource extends JsonResource
             'location'              => $this->location,
             'type'                  => $this->type,
             'severity'              => $this->severity,
+            'employees'             => $this->employees ?? [],
             'description'           => $this->description,
             'impact'                => $this->impact,
             'corrective_action'     => $this->corrective_action,
