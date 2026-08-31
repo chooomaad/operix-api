@@ -19,6 +19,23 @@ class AuditLogController extends Controller
         if ($request->filled('from'))       $query->whereDate('created_at', '>=', $request->from);
         if ($request->filled('to'))         $query->whereDate('created_at', '<=', $request->to);
 
+        // Filtre par VERBE (created / updated / deleted…) : les actions sont
+        // nommees « {modele}_{verbe} », on filtre donc sur le suffixe.
+        if ($request->filled('verb')) {
+            $query->where('action', 'like', '%_' . $request->string('verb'));
+        }
+
+        // Recherche libre : action, type de modele, ou nom de l'utilisateur.
+        // Parametree (bindings), insensible a la casse.
+        if ($request->filled('search')) {
+            $term = '%' . strtolower(trim($request->string('search'))) . '%';
+            $query->where(function ($q) use ($term) {
+                $q->whereRaw('LOWER(action) LIKE ?', [$term])
+                  ->orWhereRaw('LOWER(model_type) LIKE ?', [$term])
+                  ->orWhereHas('user', fn ($u) => $u->whereRaw('LOWER(name) LIKE ?', [$term]));
+            });
+        }
+
         $perPage   = min($request->integer('per_page', 50), 200);
         $paginated = $query->orderByDesc('created_at')->paginate($perPage);
 
