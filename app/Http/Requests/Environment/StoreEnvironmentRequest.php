@@ -3,12 +3,14 @@
 namespace App\Http\Requests\Environment;
 
 use App\Http\Requests\Concerns\ValidatesGeolocation;
-use App\Http\Requests\Concerns\ValidatesInvolvedEmployees;
+use App\Http\Requests\Concerns\ConvertsLegacyInvolved;
+use App\Http\Requests\Concerns\ValidatesInvolvedPeople;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreEnvironmentRequest extends FormRequest
 {
-    use ValidatesInvolvedEmployees;
+    use ConvertsLegacyInvolved;
+    use ValidatesInvolvedPeople;
     use ValidatesGeolocation;
 
     public function authorize(): bool { return true; }
@@ -26,7 +28,7 @@ class StoreEnvironmentRequest extends FormRequest
             'corrective_action_due' => ['nullable', 'date'],
             'status'                => ['nullable', 'in:open,in_progress,closed'],
             'image'                 => ['nullable', 'image', 'max:5120'],
-        ] + $this->geolocationRules() + $this->involvedEmployeesRules();
+        ] + $this->geolocationRules() + $this->involvedPeopleRules();
     }
 
     /**

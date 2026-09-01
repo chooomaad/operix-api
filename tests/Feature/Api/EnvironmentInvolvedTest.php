@@ -41,21 +41,18 @@ class EnvironmentInvolvedTest extends TestCase
         $id = $this->actingAs($admin)->postJson('/api/v1/environment', [
             'date' => '2026-08-31', 'location' => 'Parc', 'type' => 'waste',
             'severity' => 'medium', 'description' => 'Rapport.',
-            'employees' => [$a->id, $b->id],
+            'involved_people' => [['type' => 'employee', 'id' => $a->id], ['type' => 'employee', 'id' => $b->id]],
         ])->assertStatus(201)->json('id');
 
-        $this->assertEqualsCanonicalizing(
-            [$a->id, $b->id],
-            EnvironmentReport::withoutGlobalScopes()->find($id)->employees,
-        );
+        $this->assertCount(2, EnvironmentReport::withoutGlobalScopes()->find($id)->involved_people);
 
         // Modification : A retire, C ajoute, B conserve.
-        $this->actingAs($admin)->putJson("/api/v1/environment/{$id}", ['employees' => [$b->id, $c->id]])
+        $this->actingAs($admin)->putJson("/api/v1/environment/{$id}", ['involved_people' => [['type' => 'employee', 'id' => $b->id], ['type' => 'employee', 'id' => $c->id]]])
             ->assertOk();
 
-        $after = EnvironmentReport::withoutGlobalScopes()->find($id)->employees;
-        $this->assertEqualsCanonicalizing([$b->id, $c->id], $after);
-        $this->assertNotContains($a->id, $after); // aucune relation fantome
+        $after = EnvironmentReport::withoutGlobalScopes()->find($id)->involved_people;
+        $this->assertCount(2, $after);
+        $this->assertNotContains(['type' => 'employee', 'id' => $a->id], $after); // aucune relation fantome
 
         // Historique : A ne l'a plus, B et C l'ont.
         $this->assertCount(0, $this->actingAs($admin)->getJson("/api/v1/employees/{$a->id}/history")->json('environment'));

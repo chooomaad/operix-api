@@ -37,6 +37,7 @@ class AuditObserver
         \App\Models\Formation::class         => 'training',
         \App\Models\Certification::class     => 'certification',
         \App\Models\MedicalVisit::class      => 'medical_visit',
+        \App\Models\Intern::class            => 'intern',
     ];
 
     /** Champs jamais recopies dans le journal (secrets). */
@@ -217,6 +218,7 @@ class AuditObserver
             'training'     => 'Formation',
             'certification' => 'Certification',
             'medical_visit' => 'Visite medicale',
+            'intern'        => 'Stagiaire',
             default        => ucfirst($label),
         };
         return "{$noun} {$verbe}";

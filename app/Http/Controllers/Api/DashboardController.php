@@ -112,6 +112,7 @@ class DashboardController extends Controller
      */
     public function topPersons(): JsonResponse
     {
+        // Agrège les personnes impliquées (toutes catégories) par (type,id).
         $counts = [];
         foreach ([
             \App\Models\SafetyIncident::class,
@@ -119,12 +120,13 @@ class DashboardController extends Controller
             \App\Models\Breach::class,
             \App\Models\EnvironmentReport::class,
         ] as $model) {
-            foreach ($model::query()->whereNotNull('employees')->pluck('employees') as $emps) {
-                foreach ((array) $emps as $id) {
-                    $id = (int) $id;
-                    if ($id > 0) {
-                        $counts[$id] = ($counts[$id] ?? 0) + 1;
+            foreach ($model::query()->whereNotNull('involved_people')->pluck('involved_people') as $people) {
+                foreach ((array) $people as $p) {
+                    if (! is_array($p) || ! isset($p['type'], $p['id'])) {
+                        continue;
                     }
+                    $key = $p['type'] . '#' . (int) $p['id'];
+                    $counts[$key] = ($counts[$key] ?? 0) + 1;
                 }
             }
         }
@@ -132,18 +134,24 @@ class DashboardController extends Controller
         arsort($counts);
         $top = array_slice($counts, 0, 6, true);
 
-        $employees = \App\Models\Employee::whereIn('id', array_keys($top))
-            ->get(['id', 'nom', 'prenom', 'matricule'])->keyBy('id');
+        // Résout chaque (type,id) en personne normalisée + son nombre d'événements.
+        $refs = collect(array_keys($top))->map(function ($key) {
+            [$type, $id] = explode('#', $key);
+            return ['type' => $type, 'id' => (int) $id];
+        })->all();
 
-        $persons = collect($top)->map(function ($count, $id) use ($employees) {
-            $e = $employees[$id] ?? null;
-            if (! $e) {
+        $resolved = \App\Support\People::resolve($refs)->keyBy(fn ($p) => $p['type'] . '#' . $p['id']);
+
+        $persons = collect($top)->map(function ($count, $key) use ($resolved) {
+            $p = $resolved[$key] ?? null;
+            if (! $p) {
                 return null;
             }
             return [
-                'id'        => $id,
-                'name'      => trim("{$e->prenom} {$e->nom}"),
-                'matricule' => $e->matricule,
+                'type'      => $p['type'],
+                'id'        => $p['id'],
+                'name'      => $p['full_name'],
+                'matricule' => $p['identifier'],
                 'count'     => $count,
             ];
         })->filter()->values();

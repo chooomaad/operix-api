@@ -21,7 +21,7 @@ class EnvironmentResource extends JsonResource
             'location'              => $this->location,
             'type'                  => $this->type,
             'severity'              => $this->severity,
-            'employees'             => $this->employees ?? [],
+            'involved_people' => \App\Support\People::resolve($this->involved_people ?? []),
             'description'           => $this->description,
             'impact'                => $this->impact,
             'corrective_action'     => $this->corrective_action,

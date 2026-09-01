@@ -124,6 +124,23 @@ Route::prefix('v1')->group(function () {
         Route::middleware('permission:employees.view')->group(function () {
             Route::get('/employees',      [EmployeeController::class, 'index']);
             Route::get('/employees/{id}', [EmployeeController::class, 'show']);
+
+            // Recherche unifiée « personnes » (employee/contractor/visitor/intern)
+            // pour le picker des 4 modules HSSE + historique de toute personne.
+            Route::get('/people/search',                [\App\Http\Controllers\Api\PeopleController::class, 'search']);
+            Route::get('/people/{type}/{id}/history',   [\App\Http\Controllers\Api\PeopleController::class, 'history'])
+                ->whereIn('type', \App\Support\People::TYPES)->whereNumber('id');
+
+            // Stagiaires (lecture)
+            Route::get('/interns',      [\App\Http\Controllers\Api\InternController::class, 'index']);
+            Route::get('/interns/{id}', [\App\Http\Controllers\Api\InternController::class, 'show'])->whereNumber('id');
+        });
+
+        // Stagiaires (écriture) — géré comme les employés (RH)
+        Route::middleware('permission:employees.manage')->group(function () {
+            Route::post('/interns',           [\App\Http\Controllers\Api\InternController::class, 'store']);
+            Route::put('/interns/{id}',       [\App\Http\Controllers\Api\InternController::class, 'update'])->whereNumber('id');
+            Route::delete('/interns/{id}',    [\App\Http\Controllers\Api\InternController::class, 'destroy'])->whereNumber('id');
         });
 
         // ── Dashboard ─────────────────────────────────────────────────────────

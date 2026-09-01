@@ -22,7 +22,7 @@ class BreachResource extends JsonResource
             'location'    => $this->location,
             'severity'    => $this->severity,
             'status'      => $this->status,
-            'employees'   => $this->employees ?? [],
+            'involved_people' => \App\Support\People::resolve($this->involved_people ?? []),
             'description' => $this->description,
             'corrective_action' => $this->corrective_action,
             'sanction'    => $this->sanction,

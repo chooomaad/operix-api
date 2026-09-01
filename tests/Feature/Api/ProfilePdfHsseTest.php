@@ -41,14 +41,14 @@ class ProfilePdfHsseTest extends TestCase
         $incRef = $this->actingAs($admin)->postJson('/api/v1/incidents', [
             'date' => '2026-08-30', 'time' => '14:30', 'location' => 'Quai 3',
             'type' => 'LTI', 'severity' => 'high', 'description' => 'Glissade sur le quai.',
-            'employees' => [$emp->id],
+            'involved_people' => [['type' => 'employee', 'id' => $emp->id]],
         ])->assertStatus(201)->json('reference');
 
         // Breach impliquant l'employé
         $brRef = $this->actingAs($admin)->postJson('/api/v1/breaches', [
             'date' => '2026-08-28', 'location' => 'Entrepôt', 'type' => 'EPI',
             'severity' => 'medium', 'description' => 'EPI non porté.',
-            'employees' => [$emp->id],
+            'involved_people' => [['type' => 'employee', 'id' => $emp->id]],
         ])->assertStatus(201)->json('reference');
 
         // 1) Le endpoint PDF répond bien (pas de 500 dû aux nouvelles requêtes/blade)
@@ -61,10 +61,10 @@ class ProfilePdfHsseTest extends TestCase
         $html = view('pdf.employee_profile', [
             'title' => 'Profil', 'orgName' => 'TCN', 'orgShort' => 'TCN',
             'orgLogo' => null, 'brandColor' => '#0f2847', 'employee' => $emp,
-            'incidents'   => \App\Models\SafetyIncident::whereRaw('employees @> ?::jsonb', [json_encode([$emp->id])])->get(),
-            'nearMiss'    => \App\Models\SafetyNearMiss::whereRaw('employees @> ?::jsonb', [json_encode([$emp->id])])->get(),
-            'breaches'    => \App\Models\Breach::whereRaw('employees @> ?::jsonb', [json_encode([$emp->id])])->get(),
-            'environment' => \App\Models\EnvironmentReport::whereRaw('employees @> ?::jsonb', [json_encode([$emp->id])])->get(),
+            'incidents'   => \App\Models\SafetyIncident::whereRaw('involved_people @> ?::jsonb', [json_encode([['type' => 'employee', 'id' => $emp->id]])])->get(),
+            'nearMiss'    => \App\Models\SafetyNearMiss::whereRaw('involved_people @> ?::jsonb', [json_encode([['type' => 'employee', 'id' => $emp->id]])])->get(),
+            'breaches'    => \App\Models\Breach::whereRaw('involved_people @> ?::jsonb', [json_encode([['type' => 'employee', 'id' => $emp->id]])])->get(),
+            'environment' => \App\Models\EnvironmentReport::whereRaw('involved_people @> ?::jsonb', [json_encode([['type' => 'employee', 'id' => $emp->id]])])->get(),
             'formations' => collect(), 'certifications' => collect(), 'medicalVisits' => collect(),
         ])->render();
 

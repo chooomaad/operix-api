@@ -45,11 +45,11 @@ class BreachHsseTest extends TestCase
             'date' => '2026-08-31', 'location' => 'Quai', 'type' => 'epi',
             'severity' => 'high', 'description' => 'Infraction EPI.',
             'corrective_action' => 'Rappel consignes.',
-            'employees' => [$a->id, $b->id],
+            'involved_people' => [['type' => 'employee', 'id' => $a->id], ['type' => 'employee', 'id' => $b->id]],
         ])->assertStatus(201);
 
         $res->assertJsonPath('severity', 'high');
-        $this->assertEqualsCanonicalizing([$a->id, $b->id], $res->json('employees'));
+        $this->assertCount(2, $res->json('involved_people'));
     }
 
     public function test_gravite_disciplinaire_est_refusee(): void
@@ -73,7 +73,7 @@ class BreachHsseTest extends TestCase
         $this->actingAs($admin)->postJson('/api/v1/breaches', [
             'date' => '2026-08-31', 'location' => 'Quai', 'type' => 'epi',
             'severity' => 'medium', 'description' => 'Infraction.',
-            'employees' => [$emp->id],
+            'involved_people' => [['type' => 'employee', 'id' => $emp->id]],
         ])->assertStatus(201);
 
         $history = $this->actingAs($admin)->getJson("/api/v1/employees/{$emp->id}/history")->assertOk();

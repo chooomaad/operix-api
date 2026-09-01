@@ -333,16 +333,16 @@ class ReportController extends Controller
         $employee = Employee::with('department:id,name')->findOrFail($id);
 
         // Historique HSSE : événements où l'employé est impliqué (colonne jsonb
-        // `employees`), même logique que l'écran profil (EmployeeController::history).
-        $empJson  = json_encode([$id]);
-        $incidents = SafetyIncident::whereRaw('employees @> ?::jsonb', [$empJson])
+        // `involved_people` = [{type,id}]), même logique que l'écran profil.
+        $empJson  = json_encode([['type' => 'employee', 'id' => $id]]);
+        $incidents = SafetyIncident::whereRaw('involved_people @> ?::jsonb', [$empJson])
             ->orderByDesc('date')->get();
-        $nearMiss  = SafetyNearMiss::whereRaw('employees @> ?::jsonb', [$empJson])
+        $nearMiss  = SafetyNearMiss::whereRaw('involved_people @> ?::jsonb', [$empJson])
             ->orderByDesc('date')->get();
         $breaches  = Breach::where(function ($q) use ($id, $empJson) {
-                $q->where('employee_id', $id)->orWhereRaw('employees @> ?::jsonb', [$empJson]);
+                $q->where('employee_id', $id)->orWhereRaw('involved_people @> ?::jsonb', [$empJson]);
             })->orderByDesc('date')->get();
-        $environment = EnvironmentReport::whereRaw('employees @> ?::jsonb', [$empJson])
+        $environment = EnvironmentReport::whereRaw('involved_people @> ?::jsonb', [$empJson])
             ->orderByDesc('date')->get();
 
         $formations     = Formation::where('employee_id', $id)->orderByDesc('date_debut')->get();

@@ -116,7 +116,7 @@ class EmployeeController extends Controller
 
         // Incidents où cet employé est impliqué (JSON array)
         $incidents = \App\Models\SafetyIncident::whereRaw(
-            "employees @> ?::jsonb", [json_encode([$id])]
+            "involved_people @> ?::jsonb", [json_encode([['type' => 'employee', 'id' => $id]])]
         )->orderByDesc('date')->get()->map(fn ($i) => [
             'id'          => $i->id,
             'reference'   => $i->reference,
@@ -130,7 +130,7 @@ class EmployeeController extends Controller
 
         // Near-miss où cet employé est impliqué
         $nearMiss = \App\Models\SafetyNearMiss::whereRaw(
-            "employees @> ?::jsonb", [json_encode([$id])]
+            "involved_people @> ?::jsonb", [json_encode([['type' => 'employee', 'id' => $id]])]
         )->orderByDesc('date')->get()->map(fn ($n) => [
             'id'          => $n->id,
             'reference'   => $n->reference,
@@ -144,7 +144,7 @@ class EmployeeController extends Controller
         // Infractions liées à cet employé
         $breaches = \App\Models\Breach::where(function ($q) use ($id) {
                 $q->where('employee_id', $id)
-                  ->orWhereRaw('employees @> ?::jsonb', [json_encode([$id])]);
+                  ->orWhereRaw('involved_people @> ?::jsonb', [json_encode([['type' => 'employee', 'id' => $id]])]);
             })->orderByDesc('date')->get()->map(fn ($b) => [
             'id'          => $b->id,
             'reference'   => $b->reference,
@@ -157,7 +157,7 @@ class EmployeeController extends Controller
 
         // Rapports environnementaux où cet employé est impliqué
         $environment = \App\Models\EnvironmentReport::whereRaw(
-            "employees @> ?::jsonb", [json_encode([$id])]
+            "involved_people @> ?::jsonb", [json_encode([['type' => 'employee', 'id' => $id]])]
         )->orderByDesc('date')->get()->map(fn ($e) => [
             'id'          => $e->id,
             'reference'   => $e->reference,
