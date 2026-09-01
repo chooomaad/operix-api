@@ -143,6 +143,7 @@ class People
                 'full_name'  => trim("{$m->prenom} {$m->nom}"),
                 'identifier' => $m->matricule,
                 'company'    => $m->entreprise,
+                'status'     => $m->is_active ? 'active' : 'inactive',
             ],
             'contractor' => [
                 'type' => 'contractor', 'id' => $m->id,
@@ -150,6 +151,7 @@ class People
                 'full_name'  => trim("{$m->prenom} {$m->nom}"),
                 'identifier' => $m->badge_number ?: "CE-{$m->id}",
                 'company'    => $m->contractor?->company_name,
+                'status'     => $m->is_active ? 'active' : 'inactive',
             ],
             'visitor' => [
                 'type' => 'visitor', 'id' => $m->id,
@@ -157,6 +159,7 @@ class People
                 'full_name'  => trim("{$m->prenom} {$m->nom}"),
                 'identifier' => $m->badge_number ?: "VIS-{$m->id}",
                 'company'    => $m->entreprise,
+                'status'     => $m->status === 'in' ? 'active' : 'inactive',
             ],
             'intern' => [
                 'type' => 'intern', 'id' => $m->id,
@@ -164,6 +167,7 @@ class People
                 'full_name'  => trim("{$m->prenom} {$m->nom}"),
                 'identifier' => $m->reference ?: "INT-{$m->id}",
                 'company'    => $m->etablissement,
+                'status'     => ($m->status ?? 'active') === 'active' ? 'active' : 'inactive',
             ],
         };
     }

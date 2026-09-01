@@ -119,6 +119,9 @@ Route::prefix('v1')->group(function () {
         // par le global scope côté serveur.
         Route::middleware(['permission:employees.agent_search', 'throttle:30,1'])
             ->get('/agent/employees/search', [AgentEmployeeController::class, 'search']);
+        // Recherche multi-type (employee/contractor/visitor/intern) pour l'agent.
+        Route::middleware(['permission:employees.agent_search', 'throttle:30,1'])
+            ->get('/agent/people/search', [\App\Http\Controllers\Api\AgentPeopleController::class, 'search']);
 
         // ── Employés (lecture — tous rôles) ──────────────────────────────────
         Route::middleware('permission:employees.view')->group(function () {
