@@ -2,18 +2,28 @@
 
 @section('content')
 <div class="section-title">Informations personnelles</div>
-<div class="info-grid">
-  <div class="info-row"><div class="info-label">Matricule</div><div class="info-value"><strong>{{ $employee->matricule }}</strong></div></div>
-  <div class="info-row"><div class="info-label">Nom complet</div><div class="info-value">{{ $employee->prenom }} {{ $employee->nom }}</div></div>
-  <div class="info-row"><div class="info-label">Poste</div><div class="info-value">{{ $employee->poste }}</div></div>
-  <div class="info-row"><div class="info-label">Département</div><div class="info-value">{{ $employee->department?->name ?? '-' }}</div></div>
-  <div class="info-row"><div class="info-label">Type contrat</div><div class="info-value">{{ $employee->type_contrat }}</div></div>
-  <div class="info-row"><div class="info-label">Date embauche</div><div class="info-value">{{ $employee->date_embauche?->format('d/m/Y') ?? '-' }}</div></div>
-  <div class="info-row"><div class="info-label">Email</div><div class="info-value">{{ $employee->email ?? '-' }}</div></div>
-  <div class="info-row"><div class="info-label">Téléphone</div><div class="info-value">{{ $employee->phone ?? '-' }}</div></div>
-  <div class="info-row"><div class="info-label">Nationalité</div><div class="info-value">{{ $employee->nationalite ?? '-' }}</div></div>
-  <div class="info-row"><div class="info-label">Statut</div><div class="info-value"><span class="badge {{ $employee->is_active ? 'badge-active' : 'badge-inactive' }}">{{ $employee->is_active ? 'Actif' : 'Inactif' }}</span></div></div>
-</div>
+<table class="info-table">
+  <tr>
+    <td class="lbl">Matricule</td><td class="val">{{ $employee->matricule }}</td>
+    <td class="lbl">Nom complet</td><td class="val">{{ $employee->prenom }} {{ $employee->nom }}</td>
+  </tr>
+  <tr>
+    <td class="lbl">Poste</td><td class="val">{{ $employee->poste ?? '-' }}</td>
+    <td class="lbl">Département</td><td class="val">{{ $employee->department?->name ?? '-' }}</td>
+  </tr>
+  <tr>
+    <td class="lbl">Type contrat</td><td class="val">{{ $employee->type_contrat ?? '-' }}</td>
+    <td class="lbl">Date embauche</td><td class="val">{{ $employee->date_embauche?->format('d/m/Y') ?? '-' }}</td>
+  </tr>
+  <tr>
+    <td class="lbl">Email</td><td class="val">{{ $employee->email ?? '-' }}</td>
+    <td class="lbl">Téléphone</td><td class="val">{{ $employee->phone ?? '-' }}</td>
+  </tr>
+  <tr>
+    <td class="lbl">Nationalité</td><td class="val">{{ $employee->nationalite ?? '-' }}</td>
+    <td class="lbl">Statut</td><td class="val"><span class="badge {{ $employee->is_active ? 'badge-active' : 'badge-inactive' }}">{{ $employee->is_active ? 'Actif' : 'Inactif' }}</span></td>
+  </tr>
+</table>
 
 @php
   $limit = fn ($s) => \Illuminate\Support\Str::limit($s ?? '', 55);

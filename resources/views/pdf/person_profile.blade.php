@@ -7,15 +7,21 @@
 @endphp
 
 <div class="section-title">Informations personnelles</div>
-<div class="info-grid">
-  <div class="info-row"><div class="info-label">Nom complet</div><div class="info-value"><strong>{{ $person['full_name'] ?? '-' }}</strong></div></div>
-  <div class="info-row"><div class="info-label">Type</div><div class="info-value">{{ $typeLabel }}</div></div>
-  <div class="info-row"><div class="info-label">Identifiant / Référence</div><div class="info-value">{{ $person['identifier'] ?? '-' }}</div></div>
-  <div class="info-row"><div class="info-label">Entreprise / Établissement</div><div class="info-value">{{ $person['company'] ?? '-' }}</div></div>
-  <div class="info-row"><div class="info-label">Statut</div><div class="info-value">
-    <span class="badge {{ ($person['status'] ?? '') === 'active' ? 'badge-active' : 'badge-inactive' }}">{{ ($person['status'] ?? '') === 'active' ? 'Actif' : 'Inactif' }}</span>
-  </div></div>
-</div>
+<table class="info-table">
+  <tr>
+    <td class="lbl">Nom complet</td><td class="val" colspan="3">{{ $person['full_name'] ?? '-' }}</td>
+  </tr>
+  <tr>
+    <td class="lbl">Type</td><td class="val">{{ $typeLabel }}</td>
+    <td class="lbl">Identifiant</td><td class="val">{{ $person['identifier'] ?? '-' }}</td>
+  </tr>
+  <tr>
+    <td class="lbl">Entreprise</td><td class="val">{{ $person['company'] ?? '-' }}</td>
+    <td class="lbl">Statut</td><td class="val">
+      <span class="badge {{ ($person['status'] ?? '') === 'active' ? 'badge-active' : 'badge-inactive' }}">{{ ($person['status'] ?? '') === 'active' ? 'Actif' : 'Inactif' }}</span>
+    </td>
+  </tr>
+</table>
 
 <div class="section-title">Historique HSSE
   &nbsp;— Incidents ({{ $incidents->count() }}), Near Miss ({{ $nearMiss->count() }}),

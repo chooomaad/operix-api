@@ -76,6 +76,15 @@ body {
   margin: 14px 0 6px 0;
 }
 
+/* ── Table d'informations (fiches profil) ── */
+.info-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 9.5px; }
+.info-table td { padding: 6px 9px; border: 1px solid #e5e9f0; vertical-align: middle; }
+.info-table .lbl {
+  background-color: #f4f6f9; color: #64748b; font-weight: bold; width: 16%;
+  text-transform: uppercase; font-size: 7.5px; letter-spacing: .4px; white-space: nowrap;
+}
+.info-table .val { color: #1e293b; font-weight: 600; }
+
 /* ── Sous-titres & vides (historique HSSE) ── */
 .hsse-sub { font-size: 9px; font-weight: bold; color: {{ $brandColor ?? '#0f2847' }}; margin: 10px 0 3px 0; }
 .hsse-empty { font-size: 8.5px; color: #a0aec0; margin: 0 0 8px 0; font-style: italic; }

@@ -32,9 +32,10 @@ class ReportController extends Controller
         $logoB64 = null;
         $logoPaths = array_filter([
             $tenant?->logo ? storage_path('app/public/' . $tenant->logo) : null,
+            public_path('logos/logo-tcn.png'),
             storage_path('app/public/logos/logo-tcn.png'),
+            public_path('logos/logo-operix.png'),
             storage_path('app/public/logos/logo-operix.png'),
-            public_path('storage/logos/logo-tcn.png'),
         ]);
         foreach ($logoPaths as $path) {
             if (file_exists($path) && extension_loaded('gd')) {
