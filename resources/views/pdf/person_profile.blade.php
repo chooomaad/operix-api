@@ -85,4 +85,53 @@
   </tbody>
 </table>
 @else<div class="hsse-empty">Aucun événement environnemental.</div>@endif
+
+@if($formations->count())
+<div class="section-title">Formations ({{ $formations->count() }})</div>
+<table class="data-table">
+  <thead><tr><th>Titre</th><th>Organisme</th><th>Début</th><th>Fin</th><th>Statut</th><th>Justificatif</th></tr></thead>
+  <tbody>
+    @foreach($formations as $f)
+    <tr>
+      <td>{{ $f->titre }}</td><td>{{ $f->organisme ?? '-' }}</td>
+      <td>{{ $f->date_debut?->format('d/m/Y') }}</td><td>{{ $f->date_fin?->format('d/m/Y') ?? '-' }}</td>
+      <td>{{ $f->statut }}</td>
+      <td>@if($f->img_data)<img src="{{ $f->img_data }}" style="max-height:40px; max-width:80px;">@else-@endif</td>
+    </tr>
+    @endforeach
+  </tbody>
+</table>
+@endif
+
+@if($certifications->count())
+<div class="section-title">Certifications ({{ $certifications->count() }})</div>
+<table class="data-table">
+  <thead><tr><th>Titre</th><th>Organisme</th><th>N°</th><th>Obtention</th><th>Expiration</th><th>Justificatif</th></tr></thead>
+  <tbody>
+    @foreach($certifications as $c)
+    <tr>
+      <td>{{ $c->titre }}</td><td>{{ $c->organisme ?? '-' }}</td><td>{{ $c->numero ?? '-' }}</td>
+      <td>{{ $c->date_obtention?->format('d/m/Y') }}</td><td>{{ $c->date_expiration?->format('d/m/Y') ?? '-' }}</td>
+      <td>@if($c->img_data)<img src="{{ $c->img_data }}" style="max-height:40px; max-width:80px;">@else-@endif</td>
+    </tr>
+    @endforeach
+  </tbody>
+</table>
+@endif
+
+@if($medicalVisits->count())
+<div class="section-title">Visites médicales ({{ $medicalVisits->count() }})</div>
+<table class="data-table">
+  <thead><tr><th>Date</th><th>Type</th><th>Médecin</th><th>Résultat</th><th>Prochaine visite</th><th>Justificatif</th></tr></thead>
+  <tbody>
+    @foreach($medicalVisits as $v)
+    <tr>
+      <td>{{ $v->date?->format('d/m/Y') }}</td><td>{{ $v->type }}</td><td>{{ $v->medecin ?? '-' }}</td>
+      <td>{{ $v->resultat ?? '-' }}</td><td>{{ $v->prochaine_visite?->format('d/m/Y') ?? '-' }}</td>
+      <td>@if($v->img_data)<img src="{{ $v->img_data }}" style="max-height:40px; max-width:80px;">@else-@endif</td>
+    </tr>
+    @endforeach
+  </tbody>
+</table>
+@endif
 @endsection

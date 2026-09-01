@@ -389,6 +389,14 @@ class ReportController extends Controller
         $org     = $this->orgBranding($request);
         $needle  = json_encode([['type' => $type, 'id' => $id]]);
         $byRaw   = fn ($model) => $model::whereRaw('involved_people @> ?::jsonb', [$needle])->orderByDesc('date')->get();
+        $byPerson = fn ($model) => $model::where('person_type', $type)->where('person_id', $id)->latest()->get();
+
+        $formations     = $byPerson(\App\Models\Formation::class);
+        $certifications = $byPerson(\App\Models\Certification::class);
+        $medicalVisits  = $byPerson(\App\Models\MedicalVisit::class);
+        $formations->each(fn ($f)    => $f->img_data = $this->imgDataUri($f->certificat));
+        $certifications->each(fn ($c) => $c->img_data = $this->imgDataUri($c->document));
+        $medicalVisits->each(fn ($v)  => $v->img_data = $this->imgDataUri($v->document));
 
         $pdf = Pdf::loadView('pdf.person_profile', [
             'title'       => 'Profil : ' . ($person['full_name'] ?? ''),
@@ -402,6 +410,9 @@ class ReportController extends Controller
             'nearMiss'    => $byRaw(SafetyNearMiss::class),
             'breaches'    => $byRaw(Breach::class),
             'environment' => $byRaw(EnvironmentReport::class),
+            'formations'     => $formations,
+            'certifications' => $certifications,
+            'medicalVisits'  => $medicalVisits,
         ])->setPaper('a4', 'portrait');
 
         $this->auditLog($request, 'export_pdf', 'person_profile', $id);

@@ -137,6 +137,24 @@ Route::prefix('v1')->group(function () {
             // Stagiaires (lecture)
             Route::get('/interns',      [\App\Http\Controllers\Api\InternController::class, 'index']);
             Route::get('/interns/{id}', [\App\Http\Controllers\Api\InternController::class, 'show'])->whereNumber('id');
+
+            // Dossiers RH (formations/certifications/visites) de toute personne — lecture
+            Route::get('/people/{type}/{id}/{record}', [\App\Http\Controllers\Api\PersonRecordController::class, 'index'])
+                ->whereIn('type', \App\Support\People::TYPES)->whereNumber('id')
+                ->whereIn('record', ['formations', 'certifications', 'medical-visits']);
+        });
+
+        // Dossiers RH de toute personne — écriture (comme la gestion employé)
+        Route::middleware('permission:employees.manage')->group(function () {
+            Route::post('/people/{type}/{id}/{record}', [\App\Http\Controllers\Api\PersonRecordController::class, 'store'])
+                ->whereIn('type', \App\Support\People::TYPES)->whereNumber('id')
+                ->whereIn('record', ['formations', 'certifications', 'medical-visits']);
+            Route::put('/people/{type}/{id}/{record}/{recordId}', [\App\Http\Controllers\Api\PersonRecordController::class, 'update'])
+                ->whereIn('type', \App\Support\People::TYPES)->whereNumber('id')
+                ->whereIn('record', ['formations', 'certifications', 'medical-visits'])->whereNumber('recordId');
+            Route::delete('/people/{type}/{id}/{record}/{recordId}', [\App\Http\Controllers\Api\PersonRecordController::class, 'destroy'])
+                ->whereIn('type', \App\Support\People::TYPES)->whereNumber('id')
+                ->whereIn('record', ['formations', 'certifications', 'medical-visits'])->whereNumber('recordId');
         });
 
         // Stagiaires (écriture) — géré comme les employés (RH)

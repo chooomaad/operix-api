@@ -13,7 +13,7 @@ class Certification extends Model
 
     // Colonnes réelles de la table `certifications` (cf. migration + schéma PG).
     protected $fillable = [
-        'employee_id', 'titre', 'numero', 'organisme',
+        'employee_id', 'person_type', 'person_id', 'titre', 'numero', 'organisme',
         'date_obtention', 'date_expiration', 'document', 'is_expired',
     ];
 

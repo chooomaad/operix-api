@@ -12,7 +12,7 @@ class MedicalVisit extends Model
     use BelongsToTenant, SoftDeletes;
 
     protected $fillable = [
-        'employee_id', 'date', 'type', 'resultat',
+        'employee_id', 'person_type', 'person_id', 'date', 'type', 'resultat',
         'restrictions', 'prochaine_visite', 'medecin', 'document', 'observations',
     ];
 

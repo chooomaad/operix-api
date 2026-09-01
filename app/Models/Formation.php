@@ -12,7 +12,7 @@ class Formation extends Model
     use BelongsToTenant, SoftDeletes;
 
     protected $fillable = [
-        'employee_id', 'titre', 'organisme',
+        'employee_id', 'person_type', 'person_id', 'titre', 'organisme',
         'date_debut', 'date_fin', 'duree_jours',
         'type', 'statut', 'certificat', 'observations',
     ];
