@@ -215,6 +215,8 @@ Route::prefix('v1')->group(function () {
                 Route::get('/environment',            [ReportController::class, 'environmentPdf']);
                 Route::get('/employees',              [ReportController::class, 'employeesPdf']);
                 Route::get('/employees/{id}/profile', [ReportController::class, 'employeeProfilePdf']);
+                Route::get('/people/{type}/{id}/profile', [ReportController::class, 'personProfilePdf'])
+                    ->whereIn('type', \App\Support\People::TYPES)->whereNumber('id');
                 Route::get('/permits',                [ReportController::class, 'permitsPdf']);
             });
 

@@ -375,6 +375,41 @@ class ReportController extends Controller
         return $pdf->download("profil-{$employee->matricule}.pdf");
     }
 
+    /**
+     * PDF de profil pour N'IMPORTE QUELLE personne (employee/contractor/visitor/
+     * intern) : identité + historique HSSE (containment involved_people @> [{type,id}]).
+     */
+    public function personProfilePdf(Request $request, string $type, int $id): Response
+    {
+        abort_unless(in_array($type, \App\Support\People::TYPES, true), 404);
+
+        $person = \App\Support\People::resolve([['type' => $type, 'id' => $id]])->first();
+        abort_unless($person, 404);
+
+        $org     = $this->orgBranding($request);
+        $needle  = json_encode([['type' => $type, 'id' => $id]]);
+        $byRaw   = fn ($model) => $model::whereRaw('involved_people @> ?::jsonb', [$needle])->orderByDesc('date')->get();
+
+        $pdf = Pdf::loadView('pdf.person_profile', [
+            'title'       => 'Profil : ' . ($person['full_name'] ?? ''),
+            'orgName'     => $org['name'],
+            'orgShort'    => $org['short'],
+            'orgLogo'     => $org['logo'],
+            'brandColor'  => $org['color'],
+            'person'      => $person,
+            'typeLabel'   => ['employee' => 'Employé', 'contractor' => 'Sous-traitant', 'visitor' => 'Visiteur', 'intern' => 'Stagiaire'][$type] ?? $type,
+            'incidents'   => $byRaw(SafetyIncident::class),
+            'nearMiss'    => $byRaw(SafetyNearMiss::class),
+            'breaches'    => $byRaw(Breach::class),
+            'environment' => $byRaw(EnvironmentReport::class),
+        ])->setPaper('a4', 'portrait');
+
+        $this->auditLog($request, 'export_pdf', 'person_profile', $id);
+
+        $ref = $person['identifier'] ?? $id;
+        return $pdf->download("profil-{$type}-{$ref}.pdf");
+    }
+
     // ── Permits PDF ───────────────────────────────────────────────────────────
     public function permitsPdf(Request $request): Response
     {
