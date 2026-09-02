@@ -34,19 +34,24 @@ class ImportController extends Controller
             file: $request->file('file'),
             validator: fn ($row) => $this->validateEmployeeRow($row),
             inserter: function ($row) use ($request) {
+                $deptName = $this->pick($row, ['Intitulé département','Intitule departement','Département','Departement','department','Intitulé_département']);
                 Employee::create([
                     'matricule'        => trim($this->pick($row, ['matricule','Matricule','MATRICULE','id','ID'])),
                     'nni'              => $this->pick($row, ['nni','NNI','Nni']) ?: null,
                     'nom'              => trim($this->pick($row, ['nom','Nom','NOM','last_name','lastName','name'])),
-                    'prenom'           => trim($this->pick($row, ['prenom','Prénom','PRENOM','first_name','firstName','prenom'])),
-                    'poste'            => trim($this->pick($row, ['poste','Poste','POSTE','position','job_title','fonction'])) ?: 'Non défini',
-                    'section'          => $this->pick($row, ['section','Section','département','Département','department']) ?: null,
+                    'prenom'           => trim($this->pick($row, ['prenom','Prénom','Prenom','PRENOM','first_name','firstName'])),
+                    'poste'            => trim($this->pick($row, ['Emploi occupé','Emploi occupe','poste','Poste','POSTE','position','job_title','fonction'])) ?: 'Non défini',
+                    'section'          => $deptName ?: null,
+                    'department_id'    => $this->resolveDepartmentId($deptName),
+                    'category_code'    => $this->pick($row, ['Code catégorie','Code categorie','category_code','code_categorie','Catégorie','Categorie']) ?: null,
+                    'nombre_enfants'   => is_numeric($this->pick($row, ['Nombre d\'enfants','Nombre enfants','nombre_enfants','enfants']))
+                                           ? (int) $this->pick($row, ['Nombre d\'enfants','Nombre enfants','nombre_enfants','enfants']) : null,
                     'email'            => $this->pick($row, ['email','Email','EMAIL','mail']) ?: null,
                     'phone'            => $this->pick($row, ['phone','Phone','Téléphone','telephone','tel','Tel']) ?: null,
                     'type_contrat'     => $this->normalizeContrat($this->pick($row, ['type_contrat','Type contrat','contrat','Contrat','contract_type']) ?: 'CDI'),
-                    'date_embauche'    => $this->parseDate($this->pick($row, ['date_embauche','Date embauche','date_d\'embauche','date_d\'embauche_société','hire_date','hireDate','date_entree']) ?: null),
-                    'gender'           => in_array($this->pick($row, ['gender','Genre','genre','sexe','Sexe']) ?? '', ['M','F','m','f'])
-                                           ? strtoupper($this->pick($row, ['gender','Genre','genre','sexe','Sexe'])) : null,
+                    'date_embauche'    => $this->parseDate($this->pick($row, ['Date d\'embauche','Date embauche','date_embauche','hire_date','hireDate','date_entree']) ?: null),
+                    'date_naissance'   => $this->parseDate($this->pick($row, ['Date de naissance','date_naissance','birth_date','naissance']) ?: null),
+                    'gender'           => $this->resolveGender($row),
                     'nationalite'      => $this->pick($row, ['nationalite','Nationalité','nationality','nationalité']) ?: null,
                     'is_active'        => true,
                     'last_modified_by' => $request->user()->id,
@@ -243,6 +248,35 @@ class ImportController extends Controller
                 return trim((string)$row[$key]);
             }
         }
+        return null;
+    }
+
+    /**
+     * Résout le département par son intitulé (insensible casse/espaces) et le CRÉE
+     * s'il n'existe pas encore (tenant-scopé par le global scope). Retourne l'id.
+     */
+    private function resolveDepartmentId(?string $name): ?int
+    {
+        $name = trim((string) $name);
+        if ($name === '') {
+            return null;
+        }
+        $dept = \App\Models\Department::whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower($name)])->first();
+        if (! $dept) {
+            $dept = \App\Models\Department::create(['name' => $name]);
+        }
+        return $dept->id;
+    }
+
+    /** Civilité (Monsieur/Madame) ou Genre/Sexe → 'M' / 'F'. */
+    private function resolveGender(array $row): ?string
+    {
+        $raw = mb_strtolower($this->pick($row, ['Civilité','Civilite','gender','Genre','genre','sexe','Sexe']) ?? '');
+        if ($raw === '') {
+            return null;
+        }
+        if (in_array($raw, ['m', 'h', 'monsieur', 'mr', 'mr.', 'm.'], true))       return 'M';
+        if (in_array($raw, ['f', 'madame', 'mme', 'mademoiselle', 'mlle'], true))  return 'F';
         return null;
     }
 

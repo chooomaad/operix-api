@@ -57,4 +57,23 @@ class ResetEventsCommandTest extends TestCase
         $this->assertGreaterThan(0, DB::table('roles')->count());
         $this->assertGreaterThan(0, DB::table('permissions')->count());
     }
+
+    public function test_with_people_vide_les_employes_mais_garde_les_comptes(): void
+    {
+        $tenant = Tenant::factory()->create(['status' => 'active']);
+        $user   = User::factory()->create(['tenant_id' => $tenant->id, 'role' => 'company_admin', 'is_active' => true]);
+        app(TenantContext::class)->runWithoutScope(function () use ($tenant) {
+            app(TenantContext::class)->set($tenant->id);
+            try { Employee::factory()->create(['tenant_id' => $tenant->id]); }
+            finally { app(TenantContext::class)->clear(); }
+        });
+
+        $this->assertSame(1, DB::table('employees')->count());
+        $this->artisan('operix:reset-events', ['--force' => true, '--with-people' => true])->assertSuccessful();
+
+        $this->assertSame(0, DB::table('employees')->count());   // employés vidés
+        $this->assertDatabaseHas('users', ['id' => $user->id]);  // COMPTE préservé
+        $this->assertGreaterThan(0, DB::table('roles')->count());
+        $this->assertGreaterThan(0, DB::table('permissions')->count());
+    }
 }

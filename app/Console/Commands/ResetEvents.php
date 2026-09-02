@@ -19,9 +19,14 @@ use Illuminate\Support\Facades\Schema;
  */
 class ResetEvents extends Command
 {
-    protected $signature = 'operix:reset-events {--force : Exécute sans confirmation}';
+    protected $signature = 'operix:reset-events {--force : Exécute sans confirmation} {--with-people : Vide AUSSI employés/sous-traitants/visiteurs/stagiaires (mise en production)}';
 
-    protected $description = 'Vide les données d\'événements/historique de test (préserve comptes, employés, config).';
+    protected $description = 'Vide les données d\'événements/historique de test. --with-people vide aussi les personnes (préserve TOUJOURS comptes users, rôles, permissions, départements, config).';
+
+    /** Tables « personnes » (vidées seulement avec --with-people). Ordre = FK. */
+    private array $peopleTables = [
+        'contractor_employees', 'contractors', 'visitors', 'interns', 'employees',
+    ];
 
     /** Tables d'événements / historique à vider. */
     private array $eventTables = [
@@ -51,25 +56,31 @@ class ResetEvents extends Command
 
     public function handle(): int
     {
-        $this->info('Tables d\'événements ciblées (seront VIDÉES) :');
-        $before = [];
-        foreach ($this->eventTables as $t) {
+        $withPeople = (bool) $this->option('with-people');
+        $targets = $withPeople ? array_merge($this->eventTables, $this->peopleTables) : $this->eventTables;
+
+        $this->info($withPeople
+            ? 'MISE EN PRODUCTION — tables ÉVÉNEMENTS + PERSONNES ciblées (seront VIDÉES) :'
+            : 'Tables d\'événements ciblées (seront VIDÉES) :');
+        foreach ($targets as $t) {
             if (! Schema::hasTable($t)) { continue; }
-            $before[$t] = DB::table($t)->count();
-            $this->line(sprintf('  %-24s %d ligne(s)', $t, $before[$t]));
+            $this->line(sprintf('  %-24s %d ligne(s)', $t, DB::table($t)->count()));
         }
 
         $this->newLine();
-        $this->info('Tables PRÉSERVÉES (intactes) : ' . implode(', ', array_slice($this->preserved, 0, 8)) . ', …');
+        $this->info('TOUJOURS PRÉSERVÉ : users (comptes), roles, permissions, departments, organisation, tenants.');
+        if ($withPeople) {
+            $this->warn('⚠ --with-people : employés/sous-traitants/visiteurs/stagiaires SERONT SUPPRIMÉS.');
+        }
         $this->newLine();
 
-        if (! $this->option('force') && ! $this->confirm('Confirmer la suppression de TOUTES ces données d\'événements ?')) {
+        if (! $this->option('force') && ! $this->confirm('Confirmer la suppression de TOUTES ces données ?')) {
             $this->warn('Annulé. Aucune donnée supprimée.');
             return self::FAILURE;
         }
 
-        DB::transaction(function () {
-            foreach ($this->eventTables as $t) {
+        DB::transaction(function () use ($targets) {
+            foreach ($targets as $t) {
                 if (! Schema::hasTable($t)) { continue; }
                 DB::table($t)->delete();
                 // Redémarre la séquence d'id pour un départ propre (INC-2026-0001…).
@@ -81,7 +92,7 @@ class ResetEvents extends Command
 
         $this->newLine();
         $this->info('✔ Nettoyage terminé. Vérification :');
-        foreach ($this->eventTables as $t) {
+        foreach ($targets as $t) {
             if (! Schema::hasTable($t)) { continue; }
             $this->line(sprintf('  %-24s %d ligne(s)', $t, DB::table($t)->count()));
         }

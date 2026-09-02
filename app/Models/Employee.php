@@ -15,6 +15,7 @@ class Employee extends Model
     protected $fillable = [
         'department_id', 'matricule', 'nni', 'nom', 'prenom',
         'email', 'phone', 'poste', 'section', 'entreprise', 'type_contrat',
+        'category_code', 'nombre_enfants',
         'date_embauche', 'date_fin_contrat', 'photo', 'gender',
         'date_naissance', 'nationalite', 'lieu_naissance', 'adresse',
         'num_cni', 'contact_urgence_nom', 'contact_urgence_tel',
