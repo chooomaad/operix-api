@@ -3,9 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Contractor;
+use App\Models\ContractorEmployee;
 use App\Models\Employee;
+use App\Models\Intern;
 use App\Models\SafetyIncident;
 use App\Models\SafetyNearMiss;
+use App\Models\Visitor;
 use App\Traits\HandlesApiResources;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -118,6 +122,175 @@ class ImportController extends Controller
     }
 
     // ── Infrastructure privée ─────────────────────────────────────────────────
+
+    // ══ Import STAGIAIRES / VISITEURS / SOUS-TRAITANTS ══════════════════════════
+
+    public function previewInterns(Request $request): JsonResponse
+    {
+        $request->validate(['file' => 'required|file|mimes:xlsx,xls,csv|max:10240']);
+        return $this->smartPreview($request->file('file'), ['nom et prénom', 'nom et prenom', 'stagiaire', 'nom'], fn ($r) => $this->pick($r, ['Nom et Prénom', 'Nom et Prenom', 'Nom', 'nom']) ? [] : ['Nom obligatoire']);
+    }
+
+    public function importInterns(Request $request): JsonResponse
+    {
+        $request->validate(['file' => 'required|file|mimes:xlsx,xls,csv|max:10240']);
+        $rows = $this->readSmart($request->file('file'), ['nom et prénom', 'nom et prenom', 'stagiaire', 'nom']);
+        $created = 0; $errors = [];
+        DB::transaction(function () use ($rows, &$created, &$errors) {
+            foreach ($rows as $i => $r) {
+                // Ligne de données seulement : un N° NUMÉRIQUE (skip en-tête secondaire « N° Ordre » et ligne TOTAL).
+                $no = $this->pick($r, ['N°', 'N° Ordre', 'No', 'N', '#']);
+                if ($no !== null && ! is_numeric($no)) { continue; }
+                $nom = $this->pick($r, ['Nom et Prénom', 'Nom et Prenom', 'Nom', 'nom']);
+                if (! $nom || in_array(mb_strtolower($nom), ['nom', 'nom et prénom', 'nom et prenom'], true)) { continue; }
+                $org = $this->pick($r, ['Organisme', 'organisme', 'Établissement', 'etablissement']);
+                $this->createWithReference('INT', Intern::class, [
+                    'nom'             => $nom,
+                    'prenom'          => '',
+                    'etablissement'   => ($org && strtoupper($org) !== 'N/A') ? $org : null,
+                    'departement'     => $this->pick($r, ['Département', 'Departement', 'departement']) ?: null,
+                    'duree'           => $this->pick($r, ['Durée du Stage', 'Duree du Stage', 'duree']) ?: null,
+                    'numero_identite' => $this->pick($r, ["Numéro d'identité", 'Numéro d’identité', "Numero d'identite", 'numero_identite', 'CNI', 'NNI']) ?: null,
+                    'date_debut'      => $this->parseDate($this->pickRaw($r, ['Date de Début', 'Date de debut', 'Date debut', 'date_debut'])),
+                    'date_fin'        => $this->parseDate($this->pickRaw($r, ['Date de Fin', 'Date fin', 'date_fin'])),
+                    'status'          => 'active',
+                    'is_active'       => true,
+                ]);
+                $created++;
+            }
+        });
+        return response()->json(['message' => "{$created} stagiaire(s) importé(s).", 'created' => $created, 'errors' => $errors]);
+    }
+
+    public function previewVisitors(Request $request): JsonResponse
+    {
+        $request->validate(['file' => 'required|file|mimes:xlsx,xls,csv|max:10240']);
+        return $this->smartPreview($request->file('file'), ['nom', 'visiteur', 'visitor'], fn ($r) => $this->pick($r, ['Nom', 'nom', 'Nom et Prénom']) ? [] : ['Nom obligatoire']);
+    }
+
+    public function importVisitors(Request $request): JsonResponse
+    {
+        $request->validate(['file' => 'required|file|mimes:xlsx,xls,csv|max:10240']);
+        $rows = $this->readSmart($request->file('file'), ['nom', 'visiteur', 'visitor']);
+        $created = 0;
+        DB::transaction(function () use ($rows, &$created) {
+            foreach ($rows as $r) {
+                $nom = $this->pick($r, ['Nom', 'nom', 'Nom et Prénom']);
+                if (! $nom) { continue; }
+                Visitor::create([
+                    'nom'              => $nom,
+                    'prenom'           => $this->pick($r, ['Prénom', 'Prenom', 'prenom']) ?: '',
+                    'entreprise'       => $this->pick($r, ['Entreprise', 'Société', 'Societe', 'entreprise', 'Organisme']) ?: null,
+                    'phone'            => $this->pick($r, ['Téléphone', 'Telephone', 'phone', 'Tel']) ?: null,
+                    'cin'              => $this->pick($r, ['CIN', "Numéro d'identité", 'cin', 'NNI']) ?: null,
+                    'badge_number'     => $this->pick($r, ['Badge', 'badge_number', 'N° Badge']) ?: null,
+                    'motif'            => $this->pick($r, ['Motif', 'Objet', 'motif']) ?: 'Visite',
+                    'personne_visitee' => $this->pick($r, ['Personne visitée', 'Personne visitee', 'Hôte', 'personne_visitee']) ?: 'N/A',
+                    'status'           => 'out',
+                ]);
+                $created++;
+            }
+        });
+        return response()->json(['message' => "{$created} visiteur(s) importé(s).", 'created' => $created]);
+    }
+
+    public function previewContractors(Request $request): JsonResponse
+    {
+        $request->validate(['file' => 'required|file|mimes:xlsx,xls,csv|max:10240']);
+        return $this->smartPreview($request->file('file'), ['société', 'societe', 'entreprise', 'company', 'raison sociale'], fn ($r) => $this->pick($r, ['Société', 'Societe', 'Entreprise', 'company_name', 'Raison sociale', 'Nom']) ? [] : ['Nom société obligatoire']);
+    }
+
+    public function importContractors(Request $request): JsonResponse
+    {
+        $request->validate(['file' => 'required|file|mimes:xlsx,xls,csv|max:10240']);
+        $rows = $this->readSmart($request->file('file'), ['société', 'societe', 'entreprise', 'company', 'raison sociale']);
+        $created = 0;
+        DB::transaction(function () use ($rows, &$created) {
+            foreach ($rows as $r) {
+                $name = $this->pick($r, ['Société', 'Societe', 'Entreprise', 'company_name', 'Raison sociale', 'Nom']);
+                if (! $name) { continue; }
+                Contractor::create([
+                    'company_name'  => $name,
+                    'activite'      => $this->pick($r, ['Activité', 'Activite', 'activite', 'Secteur']) ?: 'Non défini',
+                    'contact_nom'   => $this->pick($r, ['Contact', 'Responsable', 'contact_nom']) ?: null,
+                    'contact_phone' => $this->pick($r, ['Téléphone', 'Telephone', 'contact_phone', 'Tel']) ?: null,
+                    'contact_email' => $this->pick($r, ['Email', 'email', 'contact_email']) ?: null,
+                    'num_registre'  => $this->pick($r, ['Registre', 'RC', 'num_registre']) ?: null,
+                    'status'        => 'active',
+                ]);
+                $created++;
+            }
+        });
+        return response()->json(['message' => "{$created} sous-traitant(s) importé(s).", 'created' => $created]);
+    }
+
+    /** Aperçu générique pour fichiers à en-tête décoré (détection intelligente). */
+    private function smartPreview($file, array $keywords, callable $validator): JsonResponse
+    {
+        $rows = $this->readSmart($file, $keywords);
+        $preview = []; $n = 0;
+        foreach ($rows as $r) {
+            $errs = $validator($r);
+            if (! empty(array_filter($r, fn ($v) => is_scalar($v) && trim((string) $v) !== ''))) {
+                $preview[] = ['data' => array_map(fn ($v) => $v instanceof \DateTimeInterface ? $v->format('Y-m-d') : $v, $r), 'errors' => $errs, 'valid' => empty($errs)];
+                $n++;
+            }
+        }
+        return response()->json([
+            'total'   => count($preview),
+            'valid'   => count(array_filter($preview, fn ($p) => $p['valid'])),
+            'invalid' => count(array_filter($preview, fn ($p) => ! $p['valid'])),
+            'preview' => array_slice($preview, 0, 50),
+        ]);
+    }
+
+    /**
+     * Lecture « intelligente » : détecte la ligne d'en-tête (contenant un mot-clé)
+     * même si le fichier a des lignes de titre décoratives, puis lit à partir de là.
+     * Les clés d'en-tête sont nettoyées (trim). Renvoie les lignes de données.
+     */
+    private function readSmart($file, array $keywords): array
+    {
+        $path = $file->getRealPath();
+        $headerRow = $this->detectHeaderRow($path, $keywords);
+        $rows = (new FastExcel)->startRow($headerRow)->import($path)->toArray();
+        // Normalise les clés (certains en-têtes ont des espaces/retours à la ligne).
+        return array_map(function ($r) {
+            $clean = [];
+            foreach ($r as $k => $v) { $clean[trim((string) $k)] = $v; }
+            return $clean;
+        }, $rows);
+    }
+
+    /** Numéro (1-based) de la ligne d'en-tête, repérée par un mot-clé. Défaut 1. */
+    private function detectHeaderRow(string $path, array $keywords): int
+    {
+        try {
+            $reader = new \OpenSpout\Reader\XLSX\Reader();
+            $reader->open($path);
+            $i = 0;
+            foreach ($reader->getSheetIterator() as $sheet) {
+                foreach ($sheet->getRowIterator() as $row) {
+                    $i++;
+                    $cells = array_map(fn ($c) => trim((string) $c->getValue()), $row->getCells());
+                    // Ignore les lignes de titre/date fusionnées (une seule cellule remplie).
+                    $nonEmpty = count(array_filter($cells, fn ($v) => $v !== ''));
+                    if ($nonEmpty >= 3) {
+                        $joined = mb_strtolower(implode('|', $cells));
+                        foreach ($keywords as $kw) {
+                            if (str_contains($joined, mb_strtolower($kw))) { $reader->close(); return $i; }
+                        }
+                    }
+                    if ($i >= 15) { break; }
+                }
+                break;
+            }
+            $reader->close();
+        } catch (\Throwable $e) {
+            // fichier illisible en peek : on retombe sur la 1ère ligne
+        }
+        return 1;
+    }
 
     private function runPreview($file, callable $validator): JsonResponse
     {

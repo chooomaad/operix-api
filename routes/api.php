@@ -257,6 +257,12 @@ Route::prefix('v1')->group(function () {
             Route::middleware('permission:imports.run')->prefix('imports')->group(function () {
                 Route::post('/employees/preview', [ImportController::class, 'previewEmployees']);
                 Route::post('/employees',         [ImportController::class, 'importEmployees']);
+                Route::post('/interns/preview',   [ImportController::class, 'previewInterns']);
+                Route::post('/interns',           [ImportController::class, 'importInterns']);
+                Route::post('/visitors/preview',  [ImportController::class, 'previewVisitors']);
+                Route::post('/visitors',          [ImportController::class, 'importVisitors']);
+                Route::post('/contractors/preview', [ImportController::class, 'previewContractors']);
+                Route::post('/contractors',         [ImportController::class, 'importContractors']);
                 Route::post('/incidents/preview', [ImportController::class, 'previewIncidents']);
                 Route::post('/incidents',         [ImportController::class, 'importIncidents']);
                 Route::post('/near-miss',         [ImportController::class, 'importNearMiss']);

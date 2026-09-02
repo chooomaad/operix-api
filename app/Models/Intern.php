@@ -12,7 +12,7 @@ class Intern extends Model
     use BelongsToTenant, SoftDeletes, Auditable;
 
     protected $fillable = [
-        'tenant_id', 'reference', 'nom', 'prenom', 'etablissement', 'encadrant',
+        'tenant_id', 'reference', 'nom', 'prenom', 'etablissement', 'departement', 'numero_identite', 'duree', 'encadrant',
         'phone', 'email', 'date_debut', 'date_fin', 'status', 'is_active', 'photo', 'notes',
     ];
 
