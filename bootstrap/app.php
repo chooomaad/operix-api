@@ -28,6 +28,11 @@ return Application::configure(basePath: dirname(__DIR__))
         ['middleware' => ['auth:sanctum']],
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Derrière le load balancer TLS de Render : faire confiance aux en-têtes
+        // X-Forwarded-* pour que Laravel détecte le HTTPS (URL signées cohérentes,
+        // fin du « mixed content » sur les images/logos servis en http).
+        $middleware->trustProxies(at: '*');
+
         $middleware->api(prepend: [
             \App\Http\Middleware\QueryCountHeaders::class,
             \App\Http\Middleware\ForceJsonResponse::class,

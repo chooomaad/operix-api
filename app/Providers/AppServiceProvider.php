@@ -50,6 +50,13 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Derrière le proxy TLS de Render, Laravel génère des URL en http (mixed
+        // content côté HTTPS). On force le https en prod (ou si APP_URL est https).
+        if ($this->app->environment('production')
+            || str_starts_with((string) config('app.url'), 'https://')) {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
+
         Gate::policy(Employee::class,        EmployeePolicy::class);
         Gate::policy(SafetyIncident::class,  IncidentPolicy::class);
         Gate::policy(SafetyNearMiss::class,  NearMissPolicy::class);
