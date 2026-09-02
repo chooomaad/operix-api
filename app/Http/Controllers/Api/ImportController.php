@@ -49,8 +49,8 @@ class ImportController extends Controller
                     'email'            => $this->pick($row, ['email','Email','EMAIL','mail']) ?: null,
                     'phone'            => $this->pick($row, ['phone','Phone','Téléphone','telephone','tel','Tel']) ?: null,
                     'type_contrat'     => $this->normalizeContrat($this->pick($row, ['type_contrat','Type contrat','contrat','Contrat','contract_type']) ?: 'CDI'),
-                    'date_embauche'    => $this->parseDate($this->pick($row, ['Date d\'embauche','Date embauche','date_embauche','hire_date','hireDate','date_entree']) ?: null),
-                    'date_naissance'   => $this->parseDate($this->pick($row, ['Date de naissance','date_naissance','birth_date','naissance']) ?: null),
+                    'date_embauche'    => $this->parseDate($this->pickRaw($row, ["Date d'embauche société", "Date d\u{2019}embauche société", "Date d'embauche", 'Date embauche', 'date_embauche', 'hire_date', 'date_entree'])),
+                    'date_naissance'   => $this->parseDate($this->pickRaw($row, ['Date de naissance', 'date_naissance', 'birth_date', 'naissance'])),
                     'gender'           => $this->resolveGender($row),
                     'nationalite'      => $this->pick($row, ['nationalite','Nationalité','nationality','nationalité']) ?: null,
                     'is_active'        => true,
@@ -244,7 +244,7 @@ class ImportController extends Controller
     private function pick(array $row, array $keys): ?string
     {
         foreach ($keys as $key) {
-            if (isset($row[$key]) && trim((string)$row[$key]) !== '') {
+            if (isset($row[$key]) && is_scalar($row[$key]) && trim((string)$row[$key]) !== '') {
                 return trim((string)$row[$key]);
             }
         }
@@ -304,12 +304,27 @@ class ImportController extends Controller
             : 'medium';
     }
 
-    private function parseDate(?string $v): ?string
+    private function parseDate($v): ?string
     {
-        if (!$v) return null;
-        foreach (['Y-m-d','d/m/Y','d-m-Y','m/d/Y'] as $fmt) {
-            $d = \DateTime::createFromFormat($fmt, trim($v));
+        if (empty($v)) return null;
+        if ($v instanceof \DateTimeInterface) return $v->format('Y-m-d');   // FastExcel renvoie des DateTime
+        $v = trim((string) $v);
+        if ($v === '') return null;
+        foreach (['Y-m-d','d/m/Y','d-m-Y','m/d/Y','Y-m-d H:i:s','d/m/Y H:i:s'] as $fmt) {
+            $d = \DateTime::createFromFormat($fmt, $v);
             if ($d) return $d->format('Y-m-d');
+        }
+        try { return \Carbon\Carbon::parse($v)->format('Y-m-d'); }
+        catch (\Throwable $e) { return null; }
+    }
+
+    /** Comme pick() mais renvoie la valeur BRUTE (objet DateTime inclus, sans cast texte). */
+    private function pickRaw(array $row, array $keys)
+    {
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $row) && $row[$key] !== null && $row[$key] !== '') {
+                return $row[$key];
+            }
         }
         return null;
     }
