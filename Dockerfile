@@ -11,6 +11,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && a2enmod rewrite headers \
     && rm -rf /var/lib/apt/lists/*
 
+# Limites d'upload PHP relevées : les photos mobiles (3-12 Mo) doivent passer.
+RUN { \
+      echo 'upload_max_filesize=15M'; \
+      echo 'post_max_size=20M'; \
+      echo 'memory_limit=256M'; \
+      echo 'max_execution_time=120'; \
+    } > /usr/local/etc/php/conf.d/operix-uploads.ini
+
 # Apache : servir le dossier /public de Laravel (docroot fixé au build)
 RUN sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/*.conf \
     && printf '<Directory /var/www/html/public/>\n    AllowOverride All\n    Require all granted\n</Directory>\n' > /etc/apache2/conf-available/laravel.conf \

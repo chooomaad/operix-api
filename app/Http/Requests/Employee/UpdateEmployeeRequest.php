@@ -37,7 +37,7 @@ class UpdateEmployeeRequest extends FormRequest
             'contact_urgence_nom' => ['nullable', 'string', 'max:150'],
             'contact_urgence_tel' => ['nullable', 'string', 'max:20'],
             'is_active'           => ['boolean'],
-            'photo'               => ['nullable', 'image', 'max:2048'],
+            'photo'               => ['nullable', 'image', 'max:12288'],
         ];
     }
 }
