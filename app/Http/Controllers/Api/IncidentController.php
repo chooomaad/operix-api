@@ -49,6 +49,9 @@ class IncidentController extends Controller
         if ($request->hasFile('image')) {
             $data['image'] = app(\App\Services\TenantFileService::class)->store($request->file('image'), 'incidents');
         }
+        if ($request->hasFile('report_file')) {
+            $data['report_file'] = app(\App\Services\TenantFileService::class)->store($request->file('report_file'), 'incidents/reports');
+        }
 
         $incident = $this->createWithReference('INC', SafetyIncident::class, $data);
         $incident->load('reporter');
@@ -70,7 +73,12 @@ class IncidentController extends Controller
     public function update(UpdateIncidentRequest $request, int $id): JsonResponse
     {
         $incident = SafetyIncident::findOrFail($id);
-        $incident->update($request->validated());
+        $data = $request->validated();
+        if ($request->hasFile('report_file')) {
+            $data['report_file'] = app(\App\Services\TenantFileService::class)
+                ->replace($incident->report_file, $request->file('report_file'), 'incidents/reports');
+        }
+        $incident->update($data);
         $incident->load('reporter');
 
         return response()->json(new IncidentResource($incident));

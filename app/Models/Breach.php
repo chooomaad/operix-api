@@ -13,7 +13,7 @@ class Breach extends Model
 
     protected $fillable = [
         'reference', 'employee_id', 'involved_people', 'date', 'type', 'location',
-        'severity', 'description', 'corrective_action',
+        'severity', 'description', 'corrective_action', 'report_file',
         'status', 'created_by',
     ];
 

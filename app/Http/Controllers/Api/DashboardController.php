@@ -93,10 +93,25 @@ class DashboardController extends Controller
                 'link'       => '/visitors',
             ]);
 
+        $propertyDamage = \App\Models\PropertyDamage::latest('created_at')->limit(5)
+            ->get(['id', 'reference', 'type', 'severity', 'status', 'location', 'date', 'created_at'])
+            ->map(fn($d) => [
+                'id'         => $d->id,
+                'type'       => 'property_damage',
+                'icon'       => 'wrench',
+                'title'      => $d->reference . ' — ' . $d->type,
+                'subtitle'   => $d->location ?? '',
+                'severity'   => $d->severity,
+                'status'     => $d->status,
+                'created_at' => $d->created_at?->toIso8601String(),
+                'link'       => '/property-damage/' . $d->id,
+            ]);
+
         $all = collect()
             ->merge($incidents)
             ->merge($nearMiss)
             ->merge($breaches)
+            ->merge($propertyDamage)
             ->merge($visitors)
             ->sortByDesc('created_at')
             ->values()
@@ -119,6 +134,7 @@ class DashboardController extends Controller
             \App\Models\SafetyNearMiss::class,
             \App\Models\Breach::class,
             \App\Models\EnvironmentReport::class,
+            \App\Models\PropertyDamage::class,
         ] as $model) {
             foreach ($model::query()->whereNotNull('involved_people')->pluck('involved_people') as $people) {
                 foreach ((array) $people as $p) {

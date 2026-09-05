@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\MedicalVisitController;
 use App\Http\Controllers\Api\NearMissController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PermitToWorkController;
+use App\Http\Controllers\Api\PropertyDamageController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\SafetyTrackerController;
 use App\Http\Controllers\Api\SettingsController;
@@ -138,23 +139,23 @@ Route::prefix('v1')->group(function () {
             Route::get('/interns',      [\App\Http\Controllers\Api\InternController::class, 'index']);
             Route::get('/interns/{id}', [\App\Http\Controllers\Api\InternController::class, 'show'])->whereNumber('id');
 
-            // Dossiers RH (formations/certifications/visites) de toute personne — lecture
+            // Dossiers RH (formations/certifications/visites/EPI) de toute personne — lecture
             Route::get('/people/{type}/{id}/{record}', [\App\Http\Controllers\Api\PersonRecordController::class, 'index'])
                 ->whereIn('type', \App\Support\People::TYPES)->whereNumber('id')
-                ->whereIn('record', ['formations', 'certifications', 'medical-visits']);
+                ->whereIn('record', ['formations', 'certifications', 'medical-visits', 'epi']);
         });
 
         // Dossiers RH de toute personne — écriture (comme la gestion employé)
         Route::middleware('permission:employees.manage')->group(function () {
             Route::post('/people/{type}/{id}/{record}', [\App\Http\Controllers\Api\PersonRecordController::class, 'store'])
                 ->whereIn('type', \App\Support\People::TYPES)->whereNumber('id')
-                ->whereIn('record', ['formations', 'certifications', 'medical-visits']);
+                ->whereIn('record', ['formations', 'certifications', 'medical-visits', 'epi']);
             Route::put('/people/{type}/{id}/{record}/{recordId}', [\App\Http\Controllers\Api\PersonRecordController::class, 'update'])
                 ->whereIn('type', \App\Support\People::TYPES)->whereNumber('id')
-                ->whereIn('record', ['formations', 'certifications', 'medical-visits'])->whereNumber('recordId');
+                ->whereIn('record', ['formations', 'certifications', 'medical-visits', 'epi'])->whereNumber('recordId');
             Route::delete('/people/{type}/{id}/{record}/{recordId}', [\App\Http\Controllers\Api\PersonRecordController::class, 'destroy'])
                 ->whereIn('type', \App\Support\People::TYPES)->whereNumber('id')
-                ->whereIn('record', ['formations', 'certifications', 'medical-visits'])->whereNumber('recordId');
+                ->whereIn('record', ['formations', 'certifications', 'medical-visits', 'epi'])->whereNumber('recordId');
         });
 
         // Stagiaires (écriture) — géré comme les employés (RH)
@@ -222,6 +223,9 @@ Route::prefix('v1')->group(function () {
                 Route::get('/',        [SafetyTrackerController::class, 'index']);
                 Route::get('/history', [SafetyTrackerController::class, 'history']);
             });
+            // Remise à zéro du compteur (date de référence) — réservée à l'encadrement.
+            Route::middleware('permission:safety_tracker.manage')
+                ->post('/safety-tracker/reset', [SafetyTrackerController::class, 'reset']);
 
             // ── Rapports PDF ──────────────────────────────────────────────────
             Route::middleware('permission:reports.generate')->prefix('reports')->group(function () {
@@ -336,6 +340,19 @@ Route::prefix('v1')->group(function () {
                 Route::middleware('permission:environment.update')->put('/{id}',        [EnvironmentController::class, 'update']);
                 Route::middleware('permission:environment.close')->post('/{id}/close',  [EnvironmentController::class, 'close']);
                 Route::middleware('permission:environment.delete')->delete('/{id}',     [EnvironmentController::class, 'destroy']);
+            });
+
+            // ── Dommages matériels (Property Damage) ──────────────────────────
+            Route::prefix('property-damage')->group(function () {
+                Route::middleware('permission:property_damage.view')->group(function () {
+                    Route::get('/',      [PropertyDamageController::class, 'index']);
+                    Route::get('/stats', [PropertyDamageController::class, 'stats']);
+                    Route::get('/{id}',  [PropertyDamageController::class, 'show'])->whereNumber('id');
+                });
+                Route::middleware('permission:property_damage.create')->post('/',           [PropertyDamageController::class, 'store']);
+                Route::middleware('permission:property_damage.update')->put('/{id}',        [PropertyDamageController::class, 'update'])->whereNumber('id');
+                Route::middleware('permission:property_damage.close')->post('/{id}/close',  [PropertyDamageController::class, 'close'])->whereNumber('id');
+                Route::middleware('permission:property_damage.delete')->delete('/{id}',     [PropertyDamageController::class, 'destroy'])->whereNumber('id');
             });
 
 

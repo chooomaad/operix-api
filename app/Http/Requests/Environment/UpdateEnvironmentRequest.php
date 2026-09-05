@@ -27,6 +27,7 @@ class UpdateEnvironmentRequest extends FormRequest
             'corrective_action'     => ['nullable', 'string'],
             'corrective_action_due' => ['nullable', 'date'],
             'status'                => ['sometimes', 'in:open,in_progress,closed'],
+            'report_file'           => ['nullable', 'file', 'mimes:pdf', 'max:15360'],
         ] + $this->geolocationRules() + $this->involvedPeopleRules();
     }
 

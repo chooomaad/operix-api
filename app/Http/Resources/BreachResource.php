@@ -26,6 +26,8 @@ class BreachResource extends JsonResource
             'description' => $this->description,
             'corrective_action' => $this->corrective_action,
             'sanction'    => $this->sanction,
+            'report_file'     => $this->report_file,
+            'report_file_url' => app(\App\Services\TenantFileService::class)->url($this->report_file),
             'employee'    => $this->whenLoaded('employee', fn() => [
                 'id'        => $this->employee->id,
                 'matricule' => $this->employee->matricule,

@@ -48,6 +48,9 @@ class EnvironmentController extends Controller
         if ($request->hasFile('image')) {
             $data['image'] = app(\App\Services\TenantFileService::class)->store($request->file('image'), 'environment');
         }
+        if ($request->hasFile('report_file')) {
+            $data['report_file'] = app(\App\Services\TenantFileService::class)->store($request->file('report_file'), 'environment/reports');
+        }
 
         $report = $this->createWithReference('ENV', EnvironmentReport::class, $data);
         $report->load('reporter');
@@ -69,7 +72,12 @@ class EnvironmentController extends Controller
     public function update(UpdateEnvironmentRequest $request, int $id): JsonResponse
     {
         $report = EnvironmentReport::findOrFail($id);
-        $report->update($request->validated());
+        $data = $request->validated();
+        if ($request->hasFile('report_file')) {
+            $data['report_file'] = app(\App\Services\TenantFileService::class)
+                ->replace($report->report_file, $request->file('report_file'), 'environment/reports');
+        }
+        $report->update($data);
         $report->load('reporter');
 
         return response()->json(new EnvironmentResource($report));

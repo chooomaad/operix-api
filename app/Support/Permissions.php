@@ -74,6 +74,15 @@ class Permissions
         'environment.close'   => [self::CA, self::HM],
         'environment.delete'  => [self::CA, self::HM],
 
+        // ── Dommages matériels ──────────────────────────────────────────────────────
+        // Même gating que les autres évènements de terrain : signaler ouvert à
+        // l'agent, clôturer réservé à l'encadrement.
+        'property_damage.view'    => [self::CA, self::HM, self::SV, self::AG],
+        'property_damage.create'  => [self::CA, self::HM, self::SV, self::AG],
+        'property_damage.update'  => [self::CA, self::HM, self::SV],
+        'property_damage.close'   => [self::CA, self::HM],
+        'property_damage.delete'  => [self::CA, self::HM],
+
         // ── Personnel & référentiels ──────────────────────────────────────────────
         // employees.view = accès au MODULE complet (liste + fiche). L'agent en est
         // volontairement exclu : il ne dispose que d'employees.agent_search, une
@@ -96,6 +105,8 @@ class Permissions
         'equipment.manage'    => [self::CA, self::HM],
         'permits.manage'      => [self::CA, self::HM],
         'safety_tracker.view' => [self::CA, self::HM, self::SV],
+        // Remise à zéro du compteur « jours sans accident » (date de référence).
+        'safety_tracker.manage' => [self::CA, self::HM],
 
         // ── Restitution & administration ──────────────────────────────────────────
         'reports.generate'    => [self::CA, self::HM, self::SV],

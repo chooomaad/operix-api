@@ -24,6 +24,7 @@ class UpdateBreachRequest extends FormRequest
             'status'      => ['sometimes', 'in:open,in_progress,closed'],
             'description' => ['sometimes', 'string'],
             'corrective_action' => ['nullable', 'string'],
+            'report_file' => ['nullable', 'file', 'mimes:pdf', 'max:15360'],
             'employee_id' => ['nullable', 'integer', $this->tenantEmployeeExists()],
         ] + $this->involvedPeopleRules();
     }

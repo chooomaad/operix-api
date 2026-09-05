@@ -24,6 +24,7 @@ class StoreBreachRequest extends FormRequest
             'severity'    => ['required', 'in:low,medium,high,critical'],
             'description' => ['required', 'string'],
             'sanction'    => ['nullable', 'string'],
+            'report_file' => ['nullable', 'file', 'mimes:pdf', 'max:15360'],
         ] + $this->involvedPeopleRules();
     }
 }

@@ -48,6 +48,9 @@ class BreachController extends Controller
     {
         $data = $request->validated();
         $data['created_by'] = $request->user()->id;
+        if ($request->hasFile('report_file')) {
+            $data['report_file'] = app(\App\Services\TenantFileService::class)->store($request->file('report_file'), 'breaches/reports');
+        }
         $breach = $this->createWithReference('INF', Breach::class, $data);
         $breach->load(['employee', 'creator']);
 
@@ -63,7 +66,12 @@ class BreachController extends Controller
     public function update(UpdateBreachRequest $request, int $id): JsonResponse
     {
         $breach = Breach::findOrFail($id);
-        $breach->update($request->validated());
+        $data = $request->validated();
+        if ($request->hasFile('report_file')) {
+            $data['report_file'] = app(\App\Services\TenantFileService::class)
+                ->replace($breach->report_file, $request->file('report_file'), 'breaches/reports');
+        }
+        $breach->update($data);
         $breach->load(['employee', 'creator']);
 
         return response()->json(new BreachResource($breach));

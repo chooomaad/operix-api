@@ -47,6 +47,9 @@ class NearMissController extends Controller
         if ($request->hasFile('image')) {
             $data['image'] = app(\App\Services\TenantFileService::class)->store($request->file('image'), 'near-miss');
         }
+        if ($request->hasFile('report_file')) {
+            $data['report_file'] = app(\App\Services\TenantFileService::class)->store($request->file('report_file'), 'near-miss/reports');
+        }
 
         $nearMiss = $this->createWithReference('NM', SafetyNearMiss::class, $data);
         $nearMiss->load('reporter');
@@ -68,7 +71,12 @@ class NearMissController extends Controller
     public function update(UpdateNearMissRequest $request, int $id): JsonResponse
     {
         $nearMiss = SafetyNearMiss::findOrFail($id);
-        $nearMiss->update($request->validated());
+        $data = $request->validated();
+        if ($request->hasFile('report_file')) {
+            $data['report_file'] = app(\App\Services\TenantFileService::class)
+                ->replace($nearMiss->report_file, $request->file('report_file'), 'near-miss/reports');
+        }
+        $nearMiss->update($data);
         $nearMiss->load('reporter');
 
         return response()->json(new NearMissResource($nearMiss));

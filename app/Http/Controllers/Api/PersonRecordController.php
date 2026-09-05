@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Certification;
 use App\Models\Formation;
 use App\Models\MedicalVisit;
+use App\Models\PpeIssuance;
 use App\Services\TenantFileService;
 use App\Support\People;
 use Illuminate\Http\JsonResponse;
@@ -59,6 +60,23 @@ class PersonRecordController extends Controller
                 ],
                 'defaults' => ['type' => 'periodique', 'resultat' => 'apte'],
             ],
+            'epi' => [
+                'model' => PpeIssuance::class, 'image' => 'document',
+                // Le justificatif (bon de remise signé) est souvent un scan PDF, pas
+                // seulement une photo : on élargit la règle de fichier pour ce dossier.
+                'file_rule' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:10240'],
+                'rules' => [
+                    'designation'  => ['required', 'string', 'max:255'],
+                    'category'     => ['nullable', 'in:head,eyes,hearing,respiratory,hands,feet,body,fall,other'],
+                    'size'         => ['nullable', 'string', 'max:50'],
+                    'quantity'     => ['nullable', 'integer', 'min:1'],
+                    'issued_at'    => ['required', 'date'],
+                    'return_due'   => ['nullable', 'date', 'after_or_equal:issued_at'],
+                    'condition'    => ['nullable', 'in:neuf,bon,use,a_remplacer'],
+                    'observations' => ['nullable', 'string'],
+                ],
+                'defaults' => ['quantity' => 1, 'condition' => 'neuf'],
+            ],
             default => abort(404),
         };
     }
@@ -80,7 +98,7 @@ class PersonRecordController extends Controller
     {
         $this->guardPerson($type, $id);
         $cfg = $this->config($record);
-        $data = $request->validate($cfg['rules'] + ['image' => ['nullable', 'image', 'max:5120']]);
+        $data = $request->validate($cfg['rules'] + ['image' => $cfg['file_rule'] ?? ['nullable', 'image', 'max:5120']]);
 
         $payload = collect($data)->except('image')->all() + $cfg['defaults'];
         $payload['person_type'] = $type;
@@ -99,7 +117,7 @@ class PersonRecordController extends Controller
         $row = $cfg['model']::where('person_type', $type)->where('person_id', $id)->findOrFail($recordId);
 
         $rules = collect($cfg['rules'])->map(fn ($r) => array_map(fn ($x) => $x === 'required' ? 'sometimes' : $x, $r))->all();
-        $data = $request->validate($rules + ['image' => ['nullable', 'image', 'max:5120']]);
+        $data = $request->validate($rules + ['image' => $cfg['file_rule'] ?? ['nullable', 'image', 'max:5120']]);
 
         $payload = collect($data)->except('image')->all();
         if ($request->hasFile('image')) {

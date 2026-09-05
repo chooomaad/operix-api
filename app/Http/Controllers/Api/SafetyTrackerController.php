@@ -5,12 +5,16 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\SafetyIncident;
+use App\Models\Tenant;
+use App\Traits\HandlesApiResources;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class SafetyTrackerController extends Controller
 {
+    use HandlesApiResources;
+
     public function index(Request $request): JsonResponse
     {
         $year = (int) $request->integer('year', (int) now()->year);
@@ -21,8 +25,27 @@ class SafetyTrackerController extends Controller
             ->orderByDesc('date')
             ->first();
 
-        $startDate   = $lastLti ? Carbon::parse($lastLti->date)->addDay() : now()->startOfYear();
-        $daysWithout = max(0, (int) $startDate->diffInDays(now()));
+        // Date de départ du compteur = la PLUS RÉCENTE parmi :
+        //  - le lendemain du dernier accident avec arrêt (LTI) → remise à zéro
+        //    automatique dès le jour de déclaration ;
+        //  - la date de référence fixée par un administrateur (« Remettre à 0 »),
+        //    stockée dans tenant.settings['safety_tracker_start_date'].
+        // À défaut de l'un et de l'autre, on part du début de l'année.
+        $baseline = data_get($request->user()?->tenant?->settings, 'safety_tracker_start_date');
+
+        $startDate = null;
+        if ($lastLti) {
+            $startDate = Carbon::parse($lastLti->date)->addDay();
+        }
+        if ($baseline) {
+            $b = Carbon::parse($baseline);
+            $startDate = ($startDate === null || $b->gt($startDate)) ? $b : $startDate;
+        }
+        if ($startDate === null) {
+            $startDate = now()->startOfYear();
+        }
+
+        $daysWithout = max(0, (int) $startDate->startOfDay()->diffInDays(now()));
         $bestStreak  = $this->computeBestStreak();
 
         $incidents = SafetyIncident::query()
@@ -70,6 +93,39 @@ class SafetyTrackerController extends Controller
                 'employee_count'      => $empCount,
             ],
         ]);
+    }
+
+    /**
+     * Remet le compteur « jours sans accident » à zéro à partir d'une date de
+     * référence (aujourd'hui par défaut), enregistrée dans tenant.settings.
+     *
+     * N'efface AUCUNE donnée : les incidents restent intacts. Un LTI déclaré APRÈS
+     * cette date réinitialisera de nouveau le compteur automatiquement.
+     */
+    public function reset(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'date' => ['nullable', 'date', 'before_or_equal:today'],
+        ]);
+
+        $date   = $validated['date'] ?? now()->toDateString();
+        $tenant = $request->user()->tenant;
+
+        $settings = $tenant->settings ?? [];
+        $old      = $settings['safety_tracker_start_date'] ?? null;
+        $settings['safety_tracker_start_date'] = $date;
+        $tenant->update(['settings' => $settings]);
+
+        $this->auditLog(
+            $request,
+            'safety_tracker_reset',
+            Tenant::class,
+            $tenant->id,
+            ['safety_tracker_start_date' => $old],
+            ['safety_tracker_start_date' => $date],
+        );
+
+        return $this->index($request);
     }
 
     public function history(): JsonResponse

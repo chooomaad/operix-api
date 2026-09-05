@@ -32,6 +32,7 @@ class StoreIncidentRequest extends FormRequest
             'corrective_action_due' => ['nullable', 'date'],
             'status'                => ['nullable', 'in:open,in_progress,closed'],
             'image'                 => ['nullable', 'image', 'max:5120'],
+            'report_file'           => ['nullable', 'file', 'mimes:pdf', 'max:15360'],
         ] + $this->geolocationRules() + $this->involvedPeopleRules();
     }
 

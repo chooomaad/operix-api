@@ -31,6 +31,8 @@ class IncidentResource extends JsonResource
             'involved_people' => \App\Support\People::resolve($this->involved_people ?? []),
             'image'                 => $this->image,
             'image_url'             => app(\App\Services\TenantFileService::class)->url($this->image),
+            'report_file'           => $this->report_file,
+            'report_file_url'       => app(\App\Services\TenantFileService::class)->url($this->report_file),
             'reported_by'           => $this->whenLoaded('reporter', fn() => [
                 'id'   => $this->reporter->id,
                 'name' => $this->reporter->name,
