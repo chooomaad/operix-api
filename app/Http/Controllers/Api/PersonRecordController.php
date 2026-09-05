@@ -81,14 +81,18 @@ class PersonRecordController extends Controller
         };
     }
 
-    private function guardPerson(string $type, int $id): void
+    private function guardPerson(string $type, int $id, ?string $record = null): void
     {
         abort_unless(in_array($type, People::TYPES, true) && People::exists($type, $id), 404);
+
+        // La dotation EPI est réservée aux employés : un autre type de personne
+        // (sous-traitant / visiteur / stagiaire) n'a pas de dossier EPI.
+        abort_if($record === 'epi' && $type !== 'employee', 404);
     }
 
     public function index(string $type, int $id, string $record): JsonResponse
     {
-        $this->guardPerson($type, $id);
+        $this->guardPerson($type, $id, $record);
         $model = $this->config($record)['model'];
         $rows = $model::where('person_type', $type)->where('person_id', $id)->latest()->get();
         return response()->json($rows);
@@ -96,7 +100,7 @@ class PersonRecordController extends Controller
 
     public function store(Request $request, string $type, int $id, string $record): JsonResponse
     {
-        $this->guardPerson($type, $id);
+        $this->guardPerson($type, $id, $record);
         $cfg = $this->config($record);
         $data = $request->validate($cfg['rules'] + ['image' => $cfg['file_rule'] ?? ['nullable', 'image', 'max:5120']]);
 
@@ -112,7 +116,7 @@ class PersonRecordController extends Controller
 
     public function update(Request $request, string $type, int $id, string $record, int $recordId): JsonResponse
     {
-        $this->guardPerson($type, $id);
+        $this->guardPerson($type, $id, $record);
         $cfg = $this->config($record);
         $row = $cfg['model']::where('person_type', $type)->where('person_id', $id)->findOrFail($recordId);
 
@@ -129,7 +133,7 @@ class PersonRecordController extends Controller
 
     public function destroy(string $type, int $id, string $record, int $recordId): JsonResponse
     {
-        $this->guardPerson($type, $id);
+        $this->guardPerson($type, $id, $record);
         $model = $this->config($record)['model'];
         $model::where('person_type', $type)->where('person_id', $id)->findOrFail($recordId)->delete();
         return response()->json(['message' => 'Supprimé.']);

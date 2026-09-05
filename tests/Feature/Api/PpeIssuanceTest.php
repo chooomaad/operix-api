@@ -2,9 +2,11 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\Intern;
 use App\Models\PpeIssuance;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -64,6 +66,24 @@ class PpeIssuanceTest extends TestCase
         $this->actingAs($admin)->postJson("/api/v1/people/employee/{$empId}/epi", [
             'issued_at' => '2026-09-01',
         ])->assertStatus(422)->assertJsonValidationErrors(['designation']);
+    }
+
+    public function test_epi_is_forbidden_for_non_employee(): void
+    {
+        $t = Tenant::factory()->create(['status' => 'active']);
+        $admin = User::factory()->create(['tenant_id' => $t->id, 'role' => 'company_admin', 'is_active' => true]);
+
+        $intern = app(TenantContext::class)->runWithoutScope(function () use ($t) {
+            app(TenantContext::class)->set($t->id);
+            try { return Intern::create(['tenant_id' => $t->id, 'reference' => 'INT-2026-0001', 'nom' => 'X', 'prenom' => 'Y', 'status' => 'active', 'is_active' => true]); }
+            finally { app(TenantContext::class)->clear(); }
+        });
+
+        // La dotation EPI n'existe que pour les employés : 404 pour un stagiaire.
+        $this->actingAs($admin)->getJson("/api/v1/people/intern/{$intern->id}/epi")->assertStatus(404);
+        $this->actingAs($admin)->postJson("/api/v1/people/intern/{$intern->id}/epi", [
+            'designation' => 'Casque', 'issued_at' => '2026-09-01',
+        ])->assertStatus(404);
     }
 
     public function test_justificatif_pdf_stored_privately(): void
