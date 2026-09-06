@@ -29,33 +29,9 @@ class TcnSeeder extends Seeder
             ]
         );
 
-        // Admin principal
-        User::updateOrCreate(
-            ['matricule' => 'TCN-ADM-001'],
-            [
-                'name'      => 'Administrateur TCN',
-                'email'     => 'admin@tcn.mr',
-                'password'  => Hash::make('Operix2026'),
-                'role'      => 'company_admin',
-                'is_active' => true,
-                'tenant_id' => $tenant->id,
-            ]
-        );
-        User::where('matricule', 'TCN-ADM-001')->update(['tenant_id' => $tenant->id]);
-
-        // Agent HSSE par défaut
-        User::updateOrCreate(
-            ['matricule' => 'TCN-HSS-001'],
-            [
-                'name'      => 'Agent HSSE',
-                'email'     => 'hsse@tcn.mr',
-                'password'  => Hash::make('Operix2026'),
-                'role'      => 'agent',
-                'is_active' => true,
-                'tenant_id' => $tenant->id,
-            ]
-        );
-        User::where('matricule', 'TCN-HSS-001')->update(['tenant_id' => $tenant->id]);
+        // Aucun compte de démonstration : les comptes par défaut (admin@tcn.mr /
+        // hsse@tcn.mr, mot de passe connu) ont été retirés pour la production.
+        // Créer le premier administrateur avec `php artisan operix:create-admin`.
 
         app(TenantContext::class)->set($tenant->id);
 
@@ -65,13 +41,6 @@ class TcnSeeder extends Seeder
             Department::firstOrCreate(['name' => $dept]);
         }
 
-        $this->command->info('');
-        $this->command->info('✅ TCN initialisé avec succès !');
-        $this->command->info('');
-        $this->command->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        $this->command->info('  Compte Admin :  TCN-ADM-001');
-        $this->command->info('  PIN par défaut: Operix2026');
-        $this->command->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        $this->command->info('');
+        $this->command->info('✅ TCN initialisé (organisation + départements, aucun compte de démonstration).');
     }
 }
