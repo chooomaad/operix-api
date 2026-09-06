@@ -11,6 +11,7 @@ use App\Models\EnvironmentReport;
 use App\Models\Formation;
 use App\Models\MedicalVisit;
 use App\Models\PermitToWork;
+use App\Models\PpeIssuance;
 use App\Models\SafetyIncident;
 use App\Models\SafetyNearMiss;
 use App\Models\Visitor;
@@ -349,6 +350,8 @@ class ReportController extends Controller
         $formations     = Formation::where('employee_id', $id)->orderByDesc('date_debut')->get();
         $certifications = Certification::where('employee_id', $id)->orderByDesc('date_obtention')->get();
         $medicalVisits  = MedicalVisit::where('employee_id', $id)->orderByDesc('date')->get();
+        $ppe            = PpeIssuance::where('person_type', 'employee')->where('person_id', $id)
+            ->orderByDesc('issued_at')->get();
 
         // Justificatifs image intégrés en base64 (dompdf ne charge pas d'URL distante).
         $formations->each(fn ($f)     => $f->img_data = $this->imgDataUri($f->certificat));
@@ -369,6 +372,8 @@ class ReportController extends Controller
             'formations'     => $formations,
             'certifications' => $certifications,
             'medicalVisits'  => $medicalVisits,
+            'ppe'            => $ppe,
+            'ppeLabels'      => $this->ppeLabels(),
         ])->setPaper('a4', 'portrait');
 
         $this->auditLog($request, 'export_pdf', 'employee_profile', $id);
@@ -399,6 +404,11 @@ class ReportController extends Controller
         $certifications->each(fn ($c) => $c->img_data = $this->imgDataUri($c->document));
         $medicalVisits->each(fn ($v)  => $v->img_data = $this->imgDataUri($v->document));
 
+        // Dotation EPI : employés uniquement.
+        $ppe = $type === 'employee'
+            ? PpeIssuance::where('person_type', 'employee')->where('person_id', $id)->orderByDesc('issued_at')->get()
+            : collect();
+
         $pdf = Pdf::loadView('pdf.person_profile', [
             'title'       => 'Profil : ' . ($person['full_name'] ?? ''),
             'orgName'     => $org['name'],
@@ -414,6 +424,8 @@ class ReportController extends Controller
             'formations'     => $formations,
             'certifications' => $certifications,
             'medicalVisits'  => $medicalVisits,
+            'ppe'            => $ppe,
+            'ppeLabels'      => $this->ppeLabels(),
         ])->setPaper('a4', 'portrait');
 
         $this->auditLog($request, 'export_pdf', 'person_profile', $id);
@@ -487,6 +499,35 @@ class ReportController extends Controller
             }
         }
         return null;
+    }
+
+    /**
+     * Libellés FR des articles / catégories / états EPI, pour un rendu lisible dans
+     * les PDF (le blade ne fait pas d'i18n).
+     *
+     * @return array{items: array<string,string>, categories: array<string,string>, conditions: array<string,string>}
+     */
+    private function ppeLabels(): array
+    {
+        return [
+            'items' => [
+                'helmet' => 'Casque de sécurité', 'safety_glasses' => 'Lunettes de sécurité',
+                'face_shield' => 'Visière', 'ear_plugs' => "Bouchons d'oreille",
+                'ear_muffs' => 'Casque antibruit', 'respirator' => 'Masque respiratoire',
+                'dust_mask' => 'Masque anti-poussière', 'gloves' => 'Gants',
+                'safety_boots' => 'Chaussures de sécurité', 'hi_vis_vest' => 'Gilet haute visibilité',
+                'coverall' => 'Combinaison', 'harness' => 'Harnais antichute',
+                'rain_gear' => 'Vêtement de pluie', 'knee_pads' => 'Genouillères',
+            ],
+            'categories' => [
+                'head' => 'Tête', 'eyes' => 'Yeux / visage', 'hearing' => 'Audition',
+                'respiratory' => 'Respiratoire', 'hands' => 'Mains', 'feet' => 'Pieds',
+                'body' => 'Corps', 'fall' => 'Antichute', 'other' => 'Autre',
+            ],
+            'conditions' => [
+                'neuf' => 'Neuf', 'bon' => 'Bon', 'use' => 'Usé', 'a_remplacer' => 'À remplacer',
+            ],
+        ];
     }
 
     private function applyDateFilters($query, array $filters, string $field): void

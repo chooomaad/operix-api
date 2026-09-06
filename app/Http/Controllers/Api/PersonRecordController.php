@@ -66,16 +66,18 @@ class PersonRecordController extends Controller
                 // seulement une photo : on élargit la règle de fichier pour ce dossier.
                 'file_rule' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:10240'],
                 'rules' => [
-                    'designation'  => ['required', 'string', 'max:255'],
-                    'category'     => ['nullable', 'in:head,eyes,hearing,respiratory,hands,feet,body,fall,other'],
-                    'size'         => ['nullable', 'string', 'max:50'],
-                    'quantity'     => ['nullable', 'integer', 'min:1'],
-                    'issued_at'    => ['required', 'date'],
-                    'return_due'   => ['nullable', 'date', 'after_or_equal:issued_at'],
-                    'condition'    => ['nullable', 'in:neuf,bon,use,a_remplacer'],
-                    'observations' => ['nullable', 'string'],
+                    // Plusieurs articles et plusieurs catégories par remise. La
+                    // quantité est dérivée du nombre de catégories (modèle PpeIssuance).
+                    'items'         => ['required', 'array', 'min:1'],
+                    'items.*'       => ['string', 'max:100'],
+                    'categories'    => ['required', 'array', 'min:1'],
+                    'categories.*'  => ['in:head,eyes,hearing,respiratory,hands,feet,body,fall,other'],
+                    'issued_at'     => ['required', 'date'],
+                    'return_due'    => ['nullable', 'date', 'after_or_equal:issued_at'],
+                    'condition'     => ['nullable', 'in:neuf,bon,use,a_remplacer'],
+                    'observations'  => ['nullable', 'string'],
                 ],
-                'defaults' => ['quantity' => 1, 'condition' => 'neuf'],
+                'defaults' => ['condition' => 'neuf'],
             ],
             default => abort(404),
         };

@@ -140,4 +140,23 @@
   </tbody>
 </table>
 @endif
+
+@if(isset($ppe) && $ppe->count())
+<div class="section-title">Dotation EPI ({{ $ppe->count() }})</div>
+<table class="data-table">
+  <thead><tr><th>Articles</th><th>Catégories</th><th>Qté</th><th>Remis le</th><th>Retour</th><th>État</th></tr></thead>
+  <tbody>
+    @foreach($ppe as $p)
+    <tr>
+      <td>{{ collect($p->items ?? [])->map(fn($i) => $ppeLabels['items'][$i] ?? $i)->implode(', ') }}</td>
+      <td>{{ collect($p->categories ?? [])->map(fn($c) => $ppeLabels['categories'][$c] ?? $c)->implode(', ') }}</td>
+      <td>{{ $p->quantity }}</td>
+      <td>{{ $p->issued_at?->format('d/m/Y') }}</td>
+      <td>{{ $p->return_due?->format('d/m/Y') ?? '-' }}</td>
+      <td>{{ $ppeLabels['conditions'][$p->condition] ?? $p->condition }}</td>
+    </tr>
+    @endforeach
+  </tbody>
+</table>
+@endif
 @endsection

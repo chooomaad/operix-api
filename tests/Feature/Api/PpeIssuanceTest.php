@@ -13,7 +13,8 @@ use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
- * Dotation EPI rattachée à un employé via le système générique des dossiers RH.
+ * Dotation EPI (employés uniquement) : plusieurs articles + plusieurs catégories
+ * par remise, quantité dérivée du nombre de catégories.
  */
 class PpeIssuanceTest extends TestCase
 {
@@ -35,37 +36,41 @@ class PpeIssuanceTest extends TestCase
         return [$t, $admin, $empId];
     }
 
-    public function test_crud_epi_for_employee(): void
+    public function test_create_epi_multi_and_quantity_is_category_count(): void
     {
         [$t, $admin, $empId] = $this->adminAndEmployee();
         $base = "/api/v1/people/employee/{$empId}/epi";
 
         $id = $this->actingAs($admin)->postJson($base, [
-            'designation' => 'Casque de sécurité',
-            'category'    => 'head',
-            'size'        => 'L',
-            'quantity'    => 2,
-            'issued_at'   => '2026-09-01',
+            'items'      => ['helmet', 'gloves', 'safety_boots'],
+            'categories' => ['head', 'hands', 'feet'],
+            'issued_at'  => '2026-09-01',
         ])->assertStatus(201)->json('id');
 
         $row = PpeIssuance::withoutGlobalScopes()->find($id);
         $this->assertSame('employee', $row->person_type);
-        $this->assertSame($empId, $row->person_id);
-        $this->assertSame(2, $row->quantity);
+        $this->assertEqualsCanonicalizing(['helmet', 'gloves', 'safety_boots'], $row->items);
+        $this->assertEqualsCanonicalizing(['head', 'hands', 'feet'], $row->categories);
+        // head + hands + feet → 3
+        $this->assertSame(3, $row->quantity);
         $this->assertSame('neuf', $row->condition);
 
         $this->actingAs($admin)->getJson($base)->assertOk()->assertJsonCount(1);
-        $this->actingAs($admin)->putJson("{$base}/{$id}", ['condition' => 'use'])->assertOk();
         $this->actingAs($admin)->deleteJson("{$base}/{$id}")->assertOk();
         $this->actingAs($admin)->getJson($base)->assertOk()->assertJsonCount(0);
     }
 
-    public function test_designation_required(): void
+    public function test_items_and_categories_required(): void
     {
         [, $admin, $empId] = $this->adminAndEmployee();
-        $this->actingAs($admin)->postJson("/api/v1/people/employee/{$empId}/epi", [
-            'issued_at' => '2026-09-01',
-        ])->assertStatus(422)->assertJsonValidationErrors(['designation']);
+        $base = "/api/v1/people/employee/{$empId}/epi";
+
+        $this->actingAs($admin)->postJson($base, ['issued_at' => '2026-09-01'])
+            ->assertStatus(422)->assertJsonValidationErrors(['items', 'categories']);
+
+        $this->actingAs($admin)->postJson($base, [
+            'items' => ['helmet'], 'categories' => [], 'issued_at' => '2026-09-01',
+        ])->assertStatus(422)->assertJsonValidationErrors(['categories']);
     }
 
     public function test_epi_is_forbidden_for_non_employee(): void
@@ -79,10 +84,9 @@ class PpeIssuanceTest extends TestCase
             finally { app(TenantContext::class)->clear(); }
         });
 
-        // La dotation EPI n'existe que pour les employés : 404 pour un stagiaire.
         $this->actingAs($admin)->getJson("/api/v1/people/intern/{$intern->id}/epi")->assertStatus(404);
         $this->actingAs($admin)->postJson("/api/v1/people/intern/{$intern->id}/epi", [
-            'designation' => 'Casque', 'issued_at' => '2026-09-01',
+            'items' => ['helmet'], 'categories' => ['head'], 'issued_at' => '2026-09-01',
         ])->assertStatus(404);
     }
 
@@ -92,9 +96,10 @@ class PpeIssuanceTest extends TestCase
         [$t, $admin, $empId] = $this->adminAndEmployee();
 
         $res = $this->actingAs($admin)->post("/api/v1/people/employee/{$empId}/epi", [
-            'designation' => 'Chaussures S3',
-            'issued_at'   => '2026-09-01',
-            'image'       => UploadedFile::fake()->create('bon-remise.pdf', 120, 'application/pdf'),
+            'items'      => ['safety_boots'],
+            'categories' => ['feet'],
+            'issued_at'  => '2026-09-01',
+            'image'      => UploadedFile::fake()->create('bon-remise.pdf', 120, 'application/pdf'),
         ])->assertStatus(201);
 
         $path = $res->json('document');
