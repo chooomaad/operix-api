@@ -79,6 +79,7 @@ class AppServiceProvider extends ServiceProvider
             \App\Models\Formation::class,         \App\Models\Certification::class,
             \App\Models\MedicalVisit::class,      \App\Models\Intern::class,
             \App\Models\PropertyDamage::class,    \App\Models\PpeIssuance::class,
+            \App\Models\Risk::class,              \App\Models\RiskAction::class,
         ] as $auditable) {
             $auditable::observe(\App\Observers\AuditObserver::class);
         }

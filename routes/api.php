@@ -22,6 +22,8 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PermitToWorkController;
 use App\Http\Controllers\Api\PropertyDamageController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\RiskController;
+use App\Http\Controllers\Api\RiskActionController;
 use App\Http\Controllers\Api\SafetyTrackerController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Models\Tenant;
@@ -353,6 +355,31 @@ Route::prefix('v1')->group(function () {
                 Route::middleware('permission:property_damage.update')->put('/{id}',        [PropertyDamageController::class, 'update'])->whereNumber('id');
                 Route::middleware('permission:property_damage.close')->post('/{id}/close',  [PropertyDamageController::class, 'close'])->whereNumber('id');
                 Route::middleware('permission:property_damage.delete')->delete('/{id}',     [PropertyDamageController::class, 'destroy'])->whereNumber('id');
+            });
+
+            // ── Management des risques (registre + évaluation + plan d'action) ──
+            Route::prefix('risks')->group(function () {
+                Route::middleware('permission:risks.view')->group(function () {
+                    Route::get('/',                [RiskController::class, 'index']);
+                    Route::get('/dashboard',       [RiskController::class, 'dashboard']);
+                    Route::get('/assignees',       [RiskController::class, 'assignees']);
+                    Route::get('/{id}',            [RiskController::class, 'show'])->whereNumber('id');
+                    Route::get('/{id}/actions',    [RiskActionController::class, 'index'])->whereNumber('id');
+                });
+                Route::middleware('permission:risks.create')->post('/',        [RiskController::class, 'store']);
+                Route::middleware('permission:risks.update')->put('/{id}',     [RiskController::class, 'update'])->whereNumber('id');
+                Route::middleware('permission:risks.delete')->delete('/{id}',  [RiskController::class, 'destroy'])->whereNumber('id');
+
+                // Plan d'action
+                Route::middleware('permission:risks.update')->group(function () {
+                    Route::post('/{id}/actions',                [RiskActionController::class, 'store'])->whereNumber('id');
+                    Route::put('/{id}/actions/{actionId}',      [RiskActionController::class, 'update'])->whereNumber('id')->whereNumber('actionId');
+                    Route::delete('/{id}/actions/{actionId}',   [RiskActionController::class, 'destroy'])->whereNumber('id')->whereNumber('actionId');
+                });
+                // Validation HSE
+                Route::middleware('permission:risks.validate')
+                    ->post('/{id}/actions/{actionId}/validate', [RiskActionController::class, 'validateAction'])
+                    ->whereNumber('id')->whereNumber('actionId');
             });
 
 

@@ -83,6 +83,15 @@ class Permissions
         'property_damage.close'   => [self::CA, self::HM],
         'property_damage.delete'  => [self::CA, self::HM],
 
+        // ── Management des risques (registre + évaluation + plan d'action) ──────────
+        // Consultation ouverte au terrain ; création/évaluation à l'encadrement ;
+        // validation HSE et suppression réservées aux responsables.
+        'risks.view'      => [self::CA, self::HM, self::SV, self::AG],
+        'risks.create'    => [self::CA, self::HM, self::SV],
+        'risks.update'    => [self::CA, self::HM, self::SV],
+        'risks.validate'  => [self::CA, self::HM],
+        'risks.delete'    => [self::CA, self::HM],
+
         // ── Personnel & référentiels ──────────────────────────────────────────────
         // employees.view = accès au MODULE complet (liste + fiche). L'agent en est
         // volontairement exclu : il ne dispose que d'employees.agent_search, une
