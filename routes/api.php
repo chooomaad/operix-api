@@ -253,6 +253,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('/near-miss',           [ExportController::class, 'nearMiss']);
                 Route::get('/breaches',            [ExportController::class, 'breaches']);
                 Route::get('/environment',         [ExportController::class, 'environment']);
+                Route::get('/property-damage',     [ExportController::class, 'propertyDamage']);
                 Route::get('/certifications',      [ExportController::class, 'certifications']);
                 Route::get('/medical-visits',      [ExportController::class, 'medicalVisits']);
                 Route::get('/permits',             [ExportController::class, 'permits']);

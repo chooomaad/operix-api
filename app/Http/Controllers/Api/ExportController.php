@@ -161,6 +161,33 @@ class ExportController extends Controller
         return (new FastExcel($data))->download('environnement-' . now()->format('Y-m-d') . '.xlsx');
     }
 
+    public function propertyDamage(Request $request): StreamedResponse
+    {
+        $query = \App\Models\PropertyDamage::query()->with('reporter:id,name')->orderByDesc('date');
+
+        if ($request->filled('from'))     $query->whereDate('date', '>=', $request->from);
+        if ($request->filled('to'))       $query->whereDate('date', '<=', $request->to);
+        if ($request->filled('status'))   $query->where('status', $request->status);
+        if ($request->filled('type'))     $query->where('type', $request->type);
+        if ($request->filled('severity')) $query->where('severity', $request->severity);
+
+        $data = $query->get()->map(fn ($r) => [
+            'Référence'         => $r->reference,
+            'Date'              => $r->date?->format('d/m/Y'),
+            'Type'              => $r->type ?? '',
+            'Description'       => $r->description,
+            'Lieu'              => $r->location ?? '',
+            'Coût estimé (MRU)' => $r->estimated_cost,
+            'Gravité'           => $r->severity ?? '',
+            'Action corrective' => $r->corrective_action ?? '',
+            'Statut'            => $r->status,
+            'Rapporté par'      => $r->reporter?->name ?? '',
+        ]);
+
+        $this->auditLog($request, 'export_excel', 'property_damage', 0);
+        return (new FastExcel($data))->download('dommages-materiels-' . now()->format('Y-m-d') . '.xlsx');
+    }
+
     public function certifications(Request $request): StreamedResponse
     {
         $query = Certification::query()
