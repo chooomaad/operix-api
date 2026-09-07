@@ -88,6 +88,9 @@ class AuditObserver
                 'user_agent' => Str::limit((string) request()?->userAgent(), 255, ''),
             ]);
 
+            // Toast temps réel à TOUTE l'entreprise pour chaque action.
+            $this->broadcastActivity($verb, $label, $model, $actor);
+
             $this->maybeNotify($verb, $label, $model, $actor);
         } catch (\Throwable $e) {
             // L'audit ne doit jamais faire echouer l'action metier.
@@ -197,6 +200,38 @@ class AuditObserver
         }
     }
 
+    /**
+     * Diffuse un toast temps réel à toute l'entreprise pour l'action courante.
+     *
+     * Les CRÉATIONS d'évènements HSE (incident / presqu'accident / environnement /
+     * dommage matériel) sont déjà diffusées par HseEventCreated avec leur propre
+     * toast — on les exclut ici pour ne pas doubler l'annonce.
+     */
+    private function broadcastActivity(string $verb, string $label, Model $model, User $actor): void
+    {
+        if ($verb === 'created' && in_array($label, ['incident', 'near_miss', 'environment', 'property_damage'], true)) {
+            return;
+        }
+
+        $tenantId = (int) ($model->getAttribute('tenant_id') ?? app(TenantContext::class)->id() ?? 0);
+        if ($tenantId === 0) {
+            return;
+        }
+
+        \App\Events\SystemActivity::dispatch($tenantId, [
+            'action'        => "{$label}_{$verb}",
+            'label'         => $label,
+            'verb'          => $verb,
+            'title'         => $this->title($verb, $label),
+            'reference'     => $model->getAttribute('reference'),
+            'actor'         => $actor->name,
+            'resource_kind' => $label,
+            'resource_id'   => (int) $model->getKey(),
+            'severity'      => $verb === 'deleted' ? 'warn' : 'info',
+            'created_at'    => now()->toIso8601String(),
+        ]);
+    }
+
     private function title(string $verb, string $label): string
     {
         $verbe = match ($verb) {
@@ -219,7 +254,11 @@ class AuditObserver
             'certification' => 'Certification',
             'medical_visit' => 'Visite medicale',
             'intern'        => 'Stagiaire',
-            default        => ucfirst($label),
+            'property_damage' => 'Dommage materiel',
+            'risk'            => 'Risque',
+            'risk_action'     => 'Action de risque',
+            'ppe_issuance'    => 'Dotation EPI',
+            default        => ucfirst(str_replace('_', ' ', $label)),
         };
         return "{$noun} {$verbe}";
     }
