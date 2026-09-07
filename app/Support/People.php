@@ -72,7 +72,7 @@ class People
                     ->orWhere('prenom', 'ilike', $like)
                     ->orWhere('matricule', 'ilike', $like)
                     ->orWhere('poste', 'ilike', $like))
-                ->orderBy('nom')->limit($limit)->get()
+                ->orderByRaw('matricule ASC NULLS LAST')->limit($limit)->get()
                 ->each(fn ($e) => $out->push(self::normalize('employee', $e)));
         }
 
@@ -82,7 +82,7 @@ class People
                     ->orWhere('prenom', 'ilike', $like)
                     ->orWhere('badge_number', 'ilike', $like)
                     ->orWhereHas('contractor', fn ($c) => $c->where('company_name', 'ilike', $like)))
-                ->orderBy('nom')->limit($limit)->get()
+                ->orderByRaw('badge_number ASC NULLS LAST')->limit($limit)->get()
                 ->each(fn ($c) => $out->push(self::normalize('contractor', $c)));
         }
 
@@ -92,7 +92,7 @@ class People
                     ->orWhere('prenom', 'ilike', $like)
                     ->orWhere('badge_number', 'ilike', $like)
                     ->orWhere('entreprise', 'ilike', $like))
-                ->orderBy('nom')->limit($limit)->get()
+                ->orderByRaw('badge_number ASC NULLS LAST')->limit($limit)->get()
                 ->each(fn ($v) => $out->push(self::normalize('visitor', $v)));
         }
 
@@ -102,7 +102,7 @@ class People
                     ->orWhere('prenom', 'ilike', $like)
                     ->orWhere('reference', 'ilike', $like)
                     ->orWhere('etablissement', 'ilike', $like))
-                ->orderBy('nom')->limit($limit)->get()
+                ->orderByRaw('reference ASC NULLS LAST')->limit($limit)->get()
                 ->each(fn ($i) => $out->push(self::normalize('intern', $i)));
         }
 

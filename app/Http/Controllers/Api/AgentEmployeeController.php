@@ -46,8 +46,8 @@ class AgentEmployeeController extends Controller
                   ->orWhereRaw('prenom ILIKE ?', [$like])
                   ->orWhereRaw("(prenom || ' ' || nom) ILIKE ?", [$like]);
             })
+            ->orderByRaw('matricule ASC NULLS LAST')
             ->orderBy('nom')
-            ->orderBy('prenom')
             ->limit(self::LIMIT)
             ->get(['id', 'matricule', 'nom', 'prenom', 'is_active', 'tenant_id']);
 

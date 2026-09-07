@@ -25,7 +25,7 @@ class ContractorEmployeeController extends Controller
             )
         );
 
-        $employees = $query->orderBy('nom')->get([
+        $employees = $query->orderByRaw('badge_number ASC NULLS LAST')->orderBy('nom')->get([
             'id', 'contractor_id', 'nom', 'prenom', 'poste', 'phone',
             'cin', 'badge_number', 'date_debut', 'date_fin',
             'habilitation_hsse', 'habilitation_date', 'is_active',

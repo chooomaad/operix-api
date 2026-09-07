@@ -28,7 +28,7 @@ class InternController extends Controller
             $query->where('status', $request->status);
         }
 
-        $result = $this->paginateQuery($query->orderByDesc('created_at'), $request);
+        $result = $this->paginateQuery($query->orderByRaw('reference ASC NULLS LAST'), $request);
         return response()->json($result);
     }
 

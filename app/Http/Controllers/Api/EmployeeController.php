@@ -45,7 +45,8 @@ class EmployeeController extends Controller
         }
 
         $perPage   = min($request->integer('per_page', 25), 100);
-        $employees = $query->orderBy('nom')->orderBy('prenom')->paginate($perPage);
+        // Tri par matricule (identifiant de l'employé).
+        $employees = $query->orderByRaw('matricule ASC NULLS LAST')->orderBy('nom')->paginate($perPage);
 
         return response()->json([
             'data' => EmployeeResource::collection($employees->items()),

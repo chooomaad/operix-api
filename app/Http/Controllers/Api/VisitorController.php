@@ -32,7 +32,7 @@ class VisitorController extends Controller
         if ($request->filled('from'))   $query->whereDate('checked_in_at', '>=', $request->from);
         if ($request->filled('to'))     $query->whereDate('checked_in_at', '<=', $request->to);
 
-        $result = $this->paginateQuery($query->orderByDesc('checked_in_at'), $request);
+        $result = $this->paginateQuery($query->orderByRaw('badge_number ASC NULLS LAST'), $request);
         $result['data'] = VisitorResource::collection($result['data']);
 
         return response()->json($result);
