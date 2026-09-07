@@ -46,7 +46,7 @@ class SafetyTrackerController extends Controller
         }
 
         $daysWithout = max(0, (int) $startDate->startOfDay()->diffInDays(now()));
-        $bestStreak  = $this->computeBestStreak();
+        $bestStreak  = $this->computeBestStreak($baseline ? Carbon::parse($baseline) : null);
 
         $incidents = SafetyIncident::query()
             ->whereYear('date', $year)
@@ -167,32 +167,35 @@ class SafetyTrackerController extends Controller
         ]);
     }
 
-    private function computeBestStreak(): int
+    /**
+     * Meilleure série de jours sans accident (LTI), bornée par la date de référence
+     * (go-live) : les LTI antérieurs à cette date ne comptent pas, et la première
+     * série démarre à la référence — le record reflète l'exploitation réelle, pas
+     * le début d'année civile.
+     */
+    private function computeBestStreak(?Carbon $baseline): int
     {
-        $incidents = SafetyIncident::query()
+        $floor = ($baseline ?? now()->startOfYear())->copy()->startOfDay();
+
+        $dates = SafetyIncident::query()
             ->whereIn('type', ['LTI', 'FA', 'FAT'])
             ->whereNull('deleted_at')
+            ->whereDate('date', '>=', $floor)
             ->orderBy('date')
             ->pluck('date');
 
-        if ($incidents->isEmpty()) {
-            return (int) now()->startOfYear()->diffInDays(now());
+        if ($dates->isEmpty()) {
+            return max(0, (int) $floor->diffInDays(now()));
         }
 
         $best = 0;
-        $prev = null;
-
-        foreach ($incidents as $date) {
-            $current = Carbon::parse($date);
-            if ($prev) {
-                $best = max($best, (int) $prev->diffInDays($current));
-            }
-            $prev = $current;
+        $prev = $floor; // la première série part de la date de référence
+        foreach ($dates as $date) {
+            $current = Carbon::parse($date)->startOfDay();
+            $best = max($best, (int) $prev->diffInDays($current));
+            $prev = $current->copy()->addDay();
         }
-
-        if ($prev) {
-            $best = max($best, (int) $prev->diffInDays(now()));
-        }
+        $best = max($best, (int) $prev->diffInDays(now()));
 
         return $best;
     }
