@@ -60,16 +60,20 @@ return [
             'report' => false,
         ],
 
-        // ── Médias Operix — local en dev, MinIO/S3 en prod ────────────────────
+        // ── Médias Operix — local en dev, S3-compatible en prod ───────────────
+        // Compatible Cloudflare R2 / MinIO / AWS S3. Variables MEDIA_S3_* (claires,
+        // agnostiques du fournisseur) en priorité, avec repli sur MINIO_* / AWS_*.
+        // Les fichiers restent PRIVÉS : ils sont servis par l'application (lien
+        // signé), jamais par une URL S3 publique.
         'tenant-media' => match (env('MEDIA_DISK_DRIVER', 'local')) {
             's3' => [
                 'driver'                  => 's3',
-                'key'                     => env('MINIO_KEY', env('AWS_ACCESS_KEY_ID')),
-                'secret'                  => env('MINIO_SECRET', env('AWS_SECRET_ACCESS_KEY')),
-                'region'                  => env('MINIO_REGION', 'us-east-1'),
-                'bucket'                  => env('MINIO_BUCKET', 'operix-media'),
-                'endpoint'                => env('MINIO_ENDPOINT'),
-                'use_path_style_endpoint' => true,
+                'key'                     => env('MEDIA_S3_KEY', env('MINIO_KEY', env('AWS_ACCESS_KEY_ID'))),
+                'secret'                  => env('MEDIA_S3_SECRET', env('MINIO_SECRET', env('AWS_SECRET_ACCESS_KEY'))),
+                'region'                  => env('MEDIA_S3_REGION', env('MINIO_REGION', 'auto')),
+                'bucket'                  => env('MEDIA_S3_BUCKET', env('MINIO_BUCKET', 'operix-media')),
+                'endpoint'                => env('MEDIA_S3_ENDPOINT', env('MINIO_ENDPOINT')),
+                'use_path_style_endpoint' => env('MEDIA_S3_PATH_STYLE', true),
                 'visibility'              => 'private',
                 'throw'                   => true,
             ],
