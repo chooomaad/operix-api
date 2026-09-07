@@ -63,10 +63,10 @@ class SettingsController extends Controller
         try {
             $path = app(TenantFileService::class)->replace($tenant->logo, $request->file('logo'), 'branding');
         } catch (\Throwable $e) {
+            // Détail complet dans les logs serveur ; message neutre côté client.
             report($e);
-            // Message lisible côté client (utile pour diagnostiquer un stockage S3/R2).
             return response()->json([
-                'message' => 'Échec du téléversement du logo : ' . $e->getMessage(),
+                'message' => "Échec du téléversement du logo. Réessayez ou contactez l'administrateur.",
             ], 500);
         }
 
