@@ -49,6 +49,9 @@ class EmployeeResource extends JsonResource
             'contact_urgence_nom'   => $this->when($canViewPii, fn () => $this->contact_urgence_nom),
             'contact_urgence_tel'   => $this->when($canViewPii, fn () => $this->contact_urgence_tel),
             'is_active'             => $this->is_active,
+            // Deux statuts opérationnels affichés dans l'annuaire et la recherche agent.
+            'induction'             => (bool) $this->induction_status,
+            'has_ppe'               => (bool) ($this->ppe_issuances_count ?? 0),
             'photo'                 => $this->photo,
             'photo_url'             => app(\App\Services\TenantFileService::class)->url($this->photo),
             'department'            => $this->whenLoaded('department', fn () => [

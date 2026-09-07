@@ -67,6 +67,7 @@ class People
 
         if (in_array('employee', $types, true)) {
             Employee::query()
+                ->withCount('ppeIssuances')
                 ->where(fn ($w) => $w->where('nom', 'ilike', $like)
                     ->orWhere('prenom', 'ilike', $like)
                     ->orWhere('matricule', 'ilike', $like)
@@ -144,6 +145,9 @@ class People
                 'identifier' => $m->matricule,
                 'company'    => $m->entreprise,
                 'status'     => $m->is_active ? 'active' : 'inactive',
+                // Statuts opérationnels (employé uniquement) : induction faite ? EPI remis ?
+                'induction'  => (bool) $m->induction_status,
+                'has_ppe'    => (bool) ($m->ppe_issuances_count ?? 0),
             ],
             'contractor' => [
                 'type' => 'contractor', 'id' => $m->id,

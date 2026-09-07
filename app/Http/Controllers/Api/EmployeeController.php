@@ -23,7 +23,7 @@ class EmployeeController extends Controller
 
         $query = Employee::query();
         if (! $light) {
-            $query->with('department')->withCount(['formations', 'certifications']);
+            $query->with('department')->withCount(['formations', 'certifications', 'ppeIssuances']);
         }
 
         if ($request->filled('search')) {

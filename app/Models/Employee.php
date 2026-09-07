@@ -53,6 +53,12 @@ class Employee extends Model
         return $this->hasMany(MedicalVisit::class);
     }
 
+    /** Dotations EPI de l'employé (système générique person_type/person_id). */
+    public function ppeIssuances()
+    {
+        return $this->hasMany(PpeIssuance::class, 'person_id')->where('person_type', 'employee');
+    }
+
     public function breaches()
     {
         return $this->hasMany(Breach::class);
