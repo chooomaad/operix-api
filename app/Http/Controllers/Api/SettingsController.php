@@ -60,7 +60,16 @@ class SettingsController extends Controller
 
         $tenant = $request->user()->tenant;
 
-        $path = app(TenantFileService::class)->replace($tenant->logo, $request->file('logo'), 'branding');
+        try {
+            $path = app(TenantFileService::class)->replace($tenant->logo, $request->file('logo'), 'branding');
+        } catch (\Throwable $e) {
+            report($e);
+            // Message lisible côté client (utile pour diagnostiquer un stockage S3/R2).
+            return response()->json([
+                'message' => 'Échec du téléversement du logo : ' . $e->getMessage(),
+            ], 500);
+        }
+
         $tenant->update(['logo' => $path]);
 
         $this->auditLog($request, 'logo_uploaded', Tenant::class, $tenant->id);

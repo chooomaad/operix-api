@@ -76,6 +76,12 @@ return [
                 'use_path_style_endpoint' => env('MEDIA_S3_PATH_STYLE', true),
                 'visibility'              => 'private',
                 'throw'                   => true,
+                // Cloudflare R2 (et MinIO/Spaces) ne supportent pas les checksums
+                // d'intégrité CRC32 que le SDK AWS PHP récent envoie PAR DÉFAUT sur
+                // chaque upload → l'écriture échouait. On ne calcule/valide les
+                // checksums que lorsqu'ils sont explicitement requis.
+                'request_checksum_calculation' => 'when_required',
+                'response_checksum_validation' => 'when_required',
             ],
             default => [
                 'driver'     => 'local',
