@@ -99,7 +99,7 @@ class SafetyIncident extends Model implements HseEvent
         'reference', 'date', 'time', 'location',
         'type', 'severity', 'description', 'immediate_cause',
         'root_cause', 'corrective_action', 'corrective_action_due',
-        'status', 'reported_by', 'involved_people', 'image', 'report_file',
+        'status', 'reported_by', 'involved_people', 'image', 'report_file', 'closure_report',
         // Position de l'evenement. tenant_id reste hors fillable : la
         // localisation vient du client, l'appartenance jamais.
         'latitude', 'longitude', 'location_accuracy', 'location_captured_at',

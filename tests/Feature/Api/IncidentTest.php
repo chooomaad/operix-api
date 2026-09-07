@@ -6,6 +6,8 @@ use App\Models\SafetyIncident;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class IncidentTest extends TestCase
@@ -156,8 +158,26 @@ class IncidentTest extends TestCase
             ->assertJsonValidationErrors(['root_cause', 'corrective_action']);
     }
 
+    public function test_close_incident_requires_report_file(): void
+    {
+        [$tenant, $admin] = $this->createTenantAdmin();
+        $incident = SafetyIncident::factory()->create([
+            'tenant_id' => $tenant->id, 'reported_by' => $admin->id, 'status' => 'open',
+        ]);
+
+        // Sans rapport de clôture → refusé.
+        $this->actingAs($admin)
+            ->postJson("/api/v1/incidents/{$incident->id}/close", [
+                'root_cause'        => 'Sol glissant',
+                'corrective_action' => 'Revêtement antidérapant',
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['report_file']);
+    }
+
     public function test_close_incident_success(): void
     {
+        Storage::fake('tenant-media');
         [$tenant, $admin] = $this->createTenantAdmin();
 
         $incident = SafetyIncident::factory()->create([
@@ -166,13 +186,18 @@ class IncidentTest extends TestCase
             'status'      => 'open',
         ]);
 
-        $this->actingAs($admin)
-            ->postJson("/api/v1/incidents/{$incident->id}/close", [
+        $res = $this->actingAs($admin)
+            ->post("/api/v1/incidents/{$incident->id}/close", [
                 'root_cause'        => 'Sol glissant non signale',
                 'corrective_action' => 'Pose de revetement antiderapant',
+                'report_file'       => UploadedFile::fake()->create('cloture.pdf', 200, 'application/pdf'),
             ])
             ->assertStatus(200)
             ->assertJsonFragment(['status' => 'closed']);
+
+        $path = $res->json('closure_report');
+        $this->assertStringStartsWith("tenants/{$tenant->id}/incidents/closure/", $path);
+        Storage::disk('tenant-media')->assertExists($path);
     }
 
     public function test_unauthenticated_request_returns_401(): void

@@ -92,9 +92,11 @@ class IncidentController extends Controller
 
     public function close(Request $request, int $id): JsonResponse
     {
+        // La clôture d'un incident EXIGE un rapport de clôture (PDF).
         $request->validate([
             'root_cause'        => ['required', 'string'],
             'corrective_action' => ['required', 'string'],
+            'report_file'       => ['required', 'file', 'mimes:pdf', 'max:15360'],
         ]);
 
         $incident = SafetyIncident::findOrFail($id);
@@ -102,6 +104,8 @@ class IncidentController extends Controller
             'status'            => 'closed',
             'root_cause'        => $request->root_cause,
             'corrective_action' => $request->corrective_action,
+            'closure_report'    => app(\App\Services\TenantFileService::class)
+                ->replace($incident->closure_report, $request->file('report_file'), 'incidents/closure'),
         ]);
 
         return response()->json(new IncidentResource($incident));
