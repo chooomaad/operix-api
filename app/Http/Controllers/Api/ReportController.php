@@ -471,6 +471,99 @@ class ReportController extends Controller
         return $pdf->download('operix-permis.pdf');
     }
 
+    // ── Property Damage PDF ───────────────────────────────────────────────────
+    public function propertyDamagePdf(Request $request): Response
+    {
+        $validated = $request->validate([
+            'from' => 'nullable|date', 'to' => 'nullable|date',
+            'status' => 'nullable|string', 'type' => 'nullable|string', 'severity' => 'nullable|string',
+        ]);
+        $org = $this->orgBranding($request);
+
+        $query = \App\Models\PropertyDamage::query()->with('reporter:id,name')->orderByDesc('date');
+        $this->applyDateFilters($query, $validated, 'date');
+        if (!empty($validated['status']))   $query->where('status',   $validated['status']);
+        if (!empty($validated['type']))     $query->where('type',     $validated['type']);
+        if (!empty($validated['severity'])) $query->where('severity', $validated['severity']);
+
+        $records = $query->get();
+
+        $pdf = Pdf::loadView('pdf.property_damage', [
+            'title'      => 'Rapport dommages matériels',
+            'orgName'    => $org['name'],
+            'orgShort'   => $org['short'],
+            'orgLogo'    => $org['logo'],
+            'brandColor' => $org['color'],
+            'period'     => $this->periodLabel($validated),
+            'records'    => $records,
+            'stats'      => [
+                'total'  => $records->count(),
+                'open'   => $records->where('status', 'open')->count(),
+                'closed' => $records->where('status', 'closed')->count(),
+                'cost'   => (float) $records->sum('estimated_cost'),
+            ],
+        ])->setPaper('a4', 'landscape');
+
+        $this->auditLog($request, 'export_pdf', 'property_damage', 0);
+
+        return $pdf->download('operix-dommages-materiels.pdf');
+    }
+
+    // ── Risques PDF (registre) ────────────────────────────────────────────────
+    public function risksPdf(Request $request): Response
+    {
+        $validated = $request->validate([
+            'category' => 'nullable|string', 'level' => 'nullable|string',
+            'status' => 'nullable|string', 'assessment_type' => 'nullable|string',
+        ]);
+        $org = $this->orgBranding($request);
+
+        $query = \App\Models\Risk::query()->with('owner:id,name')
+            ->orderByDesc('score')->orderByDesc('date_identification');
+        if (!empty($validated['category']))        $query->where('category', $validated['category']);
+        if (!empty($validated['level']))           $query->where('level', $validated['level']);
+        if (!empty($validated['status']))          $query->where('status', $validated['status']);
+        if (!empty($validated['assessment_type'])) $query->where('assessment_type', $validated['assessment_type']);
+
+        $records = $query->get();
+
+        $pdf = Pdf::loadView('pdf.risks', [
+            'title'      => 'Registre des risques',
+            'orgName'    => $org['name'],
+            'orgShort'   => $org['short'],
+            'orgLogo'    => $org['logo'],
+            'brandColor' => $org['color'],
+            'period'     => 'Registre complet',
+            'records'    => $records,
+            'catLabels'  => $this->riskCategoryLabels(),
+            'stats'      => [
+                'total'    => $records->count(),
+                'critical' => $records->where('level', 'critical')->count(),
+                'open'     => $records->where('status', 'open')->count(),
+                'closed'   => $records->where('status', 'closed')->count(),
+            ],
+        ])->setPaper('a4', 'landscape');
+
+        $this->auditLog($request, 'export_pdf', 'risks', 0);
+
+        return $pdf->download('operix-registre-risques.pdf');
+    }
+
+    /** Libellés FR des catégories de risque (rendu PDF). @return array<string,string> */
+    private function riskCategoryLabels(): array
+    {
+        return [
+            'hse' => 'HSE', 'industrial_safety' => 'Sécurité industrielle', 'fire' => 'Incendie',
+            'work_at_height' => 'Travail en hauteur', 'traffic' => 'Circulation / véhicules',
+            'handling' => 'Manutention', 'equipment' => 'Équipements et machines', 'chemicals' => 'Produits chimiques',
+            'environment' => 'Environnement', 'ergonomics' => 'Ergonomie', 'electricity' => 'Électricité',
+            'confined_space' => 'Espaces confinés', 'hot_work' => 'Travaux à chaud', 'ship' => 'Risques navires',
+            'security' => 'Sûreté portuaire', 'unauthorized_access' => 'Accès non autorisé', 'intrusion' => 'Intrusion',
+            'theft' => 'Vol', 'cctv' => 'CCTV / surveillance', 'visitor_management' => 'Gestion des visiteurs',
+            'contractor' => 'Risques sous-traitants',
+        ];
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     /**

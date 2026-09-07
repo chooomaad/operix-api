@@ -237,6 +237,8 @@ Route::prefix('v1')->group(function () {
                 Route::get('/near-miss',              [ReportController::class, 'nearMissPdf']);
                 Route::get('/breaches',               [ReportController::class, 'breachesPdf']);
                 Route::get('/environment',            [ReportController::class, 'environmentPdf']);
+                Route::get('/property-damage',        [ReportController::class, 'propertyDamagePdf']);
+                Route::get('/risks',                  [ReportController::class, 'risksPdf']);
                 Route::get('/employees',              [ReportController::class, 'employeesPdf']);
                 Route::get('/employees/{id}/profile', [ReportController::class, 'employeeProfilePdf']);
                 Route::get('/people/{type}/{id}/profile', [ReportController::class, 'personProfilePdf'])
